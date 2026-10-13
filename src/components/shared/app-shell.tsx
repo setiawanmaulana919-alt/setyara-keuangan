@@ -232,11 +232,11 @@ export function AppShell({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/icons/Logo_Setyara_Biru_Aksen_Emas.svg"
-              alt="Setyara"
+              alt="Setara"
               className="h-10 w-10 rounded-xl object-contain"
             />
             <span className="text-xl font-bold tracking-tight text-slate-900">
-              Setyara
+              Setara
             </span>
           </Link>
         </div>
@@ -270,11 +270,11 @@ export function AppShell({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/icons/Logo_Setyara_Biru_Aksen_Emas.svg"
-                alt="Setyara"
+                alt="Setara"
                 className="h-9 w-9 rounded-lg object-contain"
               />
               <span className="text-lg font-bold tracking-tight text-slate-900">
-                Setyara
+                Setara
               </span>
             </Link>
             <div className="ml-auto flex items-center gap-3">

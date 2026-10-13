@@ -78,10 +78,10 @@ export default function LoginPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/icons/Logo_Setyara_Biru_Aksen_Emas.svg"
-            alt="Setyara"
+            alt="Setara"
             className="h-10 w-10 rounded-xl bg-white object-contain p-1"
           />
-          <span className="text-xl font-bold tracking-tight">Setyara</span>
+          <span className="text-xl font-bold tracking-tight">Setara</span>
         </Link>
         <div className="relative w-full max-w-xl">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[#f3cc68]">
@@ -168,11 +168,11 @@ export default function LoginPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/icons/Logo_Setyara_Biru_Aksen_Emas.svg"
-              alt="Setyara"
+              alt="Setara"
               className="h-10 w-10 rounded-xl object-contain"
             />
             <span className="text-xl font-bold tracking-tight text-slate-900">
-              Setyara
+              Setara
             </span>
           </Link>
           <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
@@ -188,9 +188,7 @@ export default function LoginPage() {
           className="w-full max-w-md min-w-0 rounded-none border-0 bg-transparent p-0 shadow-none sm:rounded-3xl sm:border sm:border-slate-200/80 sm:bg-white sm:p-8 sm:shadow-[0_18px_50px_rgb(15_23_42/0.06)] lg:max-w-xl lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"
         >
           <div className="hidden items-center justify-between sm:flex lg:hidden">
-            <span className="text-sm font-semibold text-slate-700">
-              Setyara
-            </span>
+            <span className="text-sm font-semibold text-slate-700">Setara</span>
             <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
               {isVerify
                 ? "Langkah terakhir"
@@ -201,7 +199,7 @@ export default function LoginPage() {
           </div>
           <h1 className="mt-7 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl lg:mt-0">
             {mode === "sign-in"
-              ? "Masuk ke Setyara"
+              ? "Masuk ke Setara"
               : mode === "sign-up"
                 ? "Buat akun online"
                 : "Verifikasi email"}

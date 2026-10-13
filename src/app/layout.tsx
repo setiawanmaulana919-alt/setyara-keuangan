@@ -15,10 +15,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Setyara",
-    template: "%s | Setyara",
+    default: "Setara",
+    template: "%s | Setara",
   },
-  description: "Pencatatan keuangan online Setyara.",
+  description: "Pencatatan keuangan online Setara.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any", type: "image/x-icon" },
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "Setyara",
+    title: "Setara",
     statusBarStyle: "default",
   },
 };

@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Setyara - Keuangan Pribadi",
-    short_name: "Setyara",
-    description: "Pencatatan keuangan online Setyara.",
+    name: "Setara - Keuangan Pribadi",
+    short_name: "Setara",
+    description: "Pencatatan keuangan online Setara.",
     lang: "id",
     start_url: "/",
     scope: "/",
