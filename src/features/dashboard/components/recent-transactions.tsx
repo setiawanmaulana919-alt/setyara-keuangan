@@ -1,11 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import type {
   Account,
   Category,
   FinancialTransaction,
 } from "@/types/data-model";
 import { TransactionDateTime } from "@/features/transactions/components/transaction-date-time";
+import {
+  TransactionDetailButton,
+  TransactionDetailsDialog,
+} from "@/features/transactions/components/transaction-details";
 
 const currency = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -28,6 +33,17 @@ export function RecentTransactions({
       right.createdAt.localeCompare(left.createdAt) ||
       right.id.localeCompare(left.id),
   );
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<FinancialTransaction | null>(null);
+  const selectedCategory = selectedTransaction
+    ? categories.find((item) => item.id === selectedTransaction.categoryId)
+    : undefined;
+  const selectedAccount = selectedTransaction
+    ? accounts.find((item) => item.id === selectedTransaction.accountId)
+    : undefined;
+  const selectedTitle = selectedTransaction
+    ? selectedTransaction.note || selectedCategory?.name || "Transaksi"
+    : "";
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgb(15_23_42/0.04)] sm:p-6">
@@ -75,13 +91,17 @@ export function RecentTransactions({
                   {income ? "↗" : "↘"}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-slate-800">
-                    {transaction.note || category?.name || "Transaksi"}
-                  </p>
+                  <TransactionDetailButton
+                    text={transaction.note || category?.name || "Transaksi"}
+                    className="text-sm font-semibold text-slate-800"
+                    onClick={() => setSelectedTransaction(transaction)}
+                  />
                   <div className="mt-1 flex min-w-0 items-center gap-1.5">
-                    <p className="min-w-0 truncate text-[11px] leading-4 text-slate-500">
-                      {account?.name ?? "Akun"}
-                    </p>
+                    <TransactionDetailButton
+                      text={account?.name ?? "Akun"}
+                      className="text-[11px] leading-4 text-slate-500"
+                      onClick={() => setSelectedTransaction(transaction)}
+                    />
                   </div>
                 </div>
                 <div className="flex min-w-0 flex-col items-end gap-1">
@@ -101,6 +121,15 @@ export function RecentTransactions({
           })
         )}
       </div>
+      {selectedTransaction && (
+        <TransactionDetailsDialog
+          transaction={selectedTransaction}
+          title={selectedTitle}
+          accountName={selectedAccount?.name ?? "Akun tidak dikenal"}
+          categoryName={selectedCategory?.name ?? "Kategori tidak dikenal"}
+          onClose={() => setSelectedTransaction(null)}
+        />
+      )}
     </section>
   );
 }

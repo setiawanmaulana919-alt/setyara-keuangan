@@ -91,6 +91,7 @@ export async function getDashboardData(
       .select(TRANSACTION_COLUMNS)
       .is("deleted_at", null)
       .order("transaction_date", { ascending: false })
+      .order("created_at", { ascending: false })
       .order("id", { ascending: false })
       .limit(5),
     client.rpc("get_account_balances"),

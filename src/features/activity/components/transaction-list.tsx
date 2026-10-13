@@ -1,11 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import type {
   Account,
   Category,
   FinancialTransaction,
 } from "@/types/data-model";
 import { TransactionDateTime } from "@/features/transactions/components/transaction-date-time";
+import {
+  TransactionDetailButton,
+  TransactionDetailsDialog,
+} from "@/features/transactions/components/transaction-details";
 
 const currency = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -42,6 +47,8 @@ export function TransactionList({
   onEdit,
   onDelete,
 }: TransactionListProps) {
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<FinancialTransaction | null>(null);
   const sortedTransactions = [...transactions].sort(
     (left, right) =>
       right.transactionDate.localeCompare(left.transactionDate) ||
@@ -54,6 +61,9 @@ export function TransactionList({
     "Kategori tidak dikenal";
   const accountName = (id: string) =>
     accounts.find((account) => account.id === id)?.name || "Akun tidak dikenal";
+  const selectedTitle = selectedTransaction
+    ? selectedTransaction.note || categoryName(selectedTransaction.categoryId)
+    : "";
 
   return (
     <>
@@ -140,15 +150,17 @@ export function TransactionList({
                       {isIncome ? "↗" : "↘"}
                     </span>
                     <div className="min-w-0">
-                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                        <p className="min-w-0 truncate text-sm font-semibold text-slate-800">
-                          {title}
-                        </p>
-                      </div>
+                      <TransactionDetailButton
+                        text={title}
+                        className="text-sm font-semibold text-slate-800"
+                        onClick={() => setSelectedTransaction(transaction)}
+                      />
                       <div className="mt-1 flex min-w-0 items-center gap-1.5">
-                        <p className="min-w-0 truncate text-[11px] leading-4 text-slate-500">
-                          {accountName(transaction.accountId)}
-                        </p>
+                        <TransactionDetailButton
+                          text={accountName(transaction.accountId)}
+                          className="text-[11px] leading-4 text-slate-500"
+                          onClick={() => setSelectedTransaction(transaction)}
+                        />
                       </div>
                     </div>
                     <div className="flex min-w-0 flex-col items-end justify-center gap-1">
@@ -296,6 +308,15 @@ export function TransactionList({
           </button>
         </nav>
       </div>
+      {selectedTransaction && (
+        <TransactionDetailsDialog
+          transaction={selectedTransaction}
+          title={selectedTitle}
+          accountName={accountName(selectedTransaction.accountId)}
+          categoryName={categoryName(selectedTransaction.categoryId)}
+          onClose={() => setSelectedTransaction(null)}
+        />
+      )}
     </>
   );
 }
