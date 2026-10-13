@@ -22,6 +22,13 @@ export function RecentTransactions({
   accounts: Account[];
   categories: Category[];
 }) {
+  const sortedTransactions = [...transactions].sort(
+    (left, right) =>
+      right.transactionDate.localeCompare(left.transactionDate) ||
+      right.createdAt.localeCompare(left.createdAt) ||
+      right.id.localeCompare(left.id),
+  );
+
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgb(15_23_42/0.04)] sm:p-6">
       <div className="flex items-center justify-between gap-4">
@@ -41,12 +48,12 @@ export function RecentTransactions({
         </a>
       </div>
       <div className="mt-4 overflow-hidden rounded-xl border border-slate-100">
-        {transactions.length === 0 ? (
+        {sortedTransactions.length === 0 ? (
           <p className="bg-slate-50/60 px-4 py-10 text-center text-sm text-slate-500">
             Belum ada transaksi.
           </p>
         ) : (
-          transactions.slice(0, 5).map((transaction, index) => {
+          sortedTransactions.slice(0, 5).map((transaction, index) => {
             const category = categories.find(
               (item) => item.id === transaction.categoryId,
             );
