@@ -37,20 +37,58 @@ export async function ensureFinanceDefaults(): Promise<void> {
     if (error) throw error;
   }
   if (categoriesTotal === 0) {
-    const defaults = [
-      ["Pokok", "income"],
-      ["Sampingan", "income"],
-      ["Kebutuhan", "expense"],
-      ["Tambahan", "expense"],
-      ["Darurat", "expense"],
-      ["Lainnya", "expense"],
-    ].map(([name, category_type]) => ({
-      id: id(),
-      owner_user_id: userId,
-      name,
-      category_type,
-    }));
-    const { error } = await client.from("categories").insert(defaults);
-    if (error) throw error;
+    const defaults: Array<{
+      name: string;
+      category_type: "income" | "expense";
+    }> = [
+      { name: "Pokok", category_type: "income" },
+      { name: "Sampingan", category_type: "income" },
+      { name: "Kebutuhan", category_type: "expense" },
+      { name: "Tambahan", category_type: "expense" },
+      { name: "Darurat", category_type: "expense" },
+      { name: "Lainnya", category_type: "expense" },
+    ];
+    const existingKeys = new Set<string>();
+    const { data: existingCategories, error: existingCategoryError } =
+      await client
+        .from("categories")
+        .select("name, category_type")
+        .eq("owner_user_id", userId)
+        .is("family_id", null);
+    if (existingCategoryError) throw existingCategoryError;
+    for (const category of existingCategories ?? []) {
+      existingKeys.add(
+        `${category.category_type}:${category.name.trim().toLowerCase()}`,
+      );
+    }
+
+    for (const category of defaults) {
+      const key = `${category.category_type}:${category.name.toLowerCase()}`;
+      if (existingKeys.has(key)) continue;
+      const { error } = await client.from("categories").insert({
+        id: id(),
+        owner_user_id: userId,
+        ...category,
+      });
+      if (!error) {
+        existingKeys.add(key);
+        continue;
+      }
+      if (error.code !== "23505") throw error;
+
+      const { data: categoriesAfterConflict, error: lookupError } = await client
+        .from("categories")
+        .select("name, category_type")
+        .eq("owner_user_id", userId)
+        .is("family_id", null);
+      if (lookupError) throw lookupError;
+      const categoryExists = (categoriesAfterConflict ?? []).some(
+        (existing) =>
+          existing.category_type === category.category_type &&
+          existing.name.trim().toLowerCase() === category.name.toLowerCase(),
+      );
+      if (!categoryExists) throw error;
+      existingKeys.add(key);
+    }
   }
 }

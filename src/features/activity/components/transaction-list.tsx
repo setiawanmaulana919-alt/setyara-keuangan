@@ -1,22 +1,17 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
 import type {
   Account,
   Category,
   FinancialTransaction,
 } from "@/types/data-model";
+import { TransactionDateTime } from "@/features/transactions/components/transaction-date-time";
 
 const currency = new Intl.NumberFormat("id-ID", {
   style: "currency",
   currency: "IDR",
   maximumFractionDigits: 0,
 });
-
-const subscribeToTimeZone = () => () => {};
-const getTimeZoneSnapshot = () =>
-  Intl.DateTimeFormat().resolvedOptions().timeZone;
-const getServerTimeZoneSnapshot = () => "UTC";
 
 interface TransactionListProps {
   transactions: FinancialTransaction[];
@@ -47,20 +42,6 @@ export function TransactionList({
   onEdit,
   onDelete,
 }: TransactionListProps) {
-  const timeZone = useSyncExternalStore(
-    subscribeToTimeZone,
-    getTimeZoneSnapshot,
-    getServerTimeZoneSnapshot,
-  );
-  const time = useMemo(
-    () =>
-      new Intl.DateTimeFormat("id-ID", {
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone,
-      }),
-    [timeZone],
-  );
   const sortedTransactions = [...transactions].sort(
     (left, right) =>
       right.transactionDate.localeCompare(left.transactionDate) ||
@@ -68,11 +49,11 @@ export function TransactionList({
       right.id.localeCompare(left.id),
   );
 
-  const accountName = (id: string) =>
-    accounts.find((account) => account.id === id)?.name || "Akun tidak dikenal";
   const categoryName = (id: string) =>
     categories.find((category) => category.id === id)?.name ||
     "Kategori tidak dikenal";
+  const accountName = (id: string) =>
+    accounts.find((account) => account.id === id)?.name || "Akun tidak dikenal";
 
   return (
     <>
@@ -163,31 +144,18 @@ export function TransactionList({
                         <p className="min-w-0 truncate text-sm font-semibold text-slate-800">
                           {title}
                         </p>
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-                          {categoryName(transaction.categoryId)}
-                        </span>
                       </div>
-                      <p className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
-                        {accountName(transaction.accountId)}
-                        <span aria-hidden="true" className="text-slate-300">
-                          ·
-                        </span>
-                        <time dateTime={transaction.transactionDate}>
-                          {transaction.transactionDate}
-                        </time>
-                        <span aria-hidden="true" className="text-slate-300">
-                          ·
-                        </span>
-                        <time
-                          dateTime={transaction.createdAt}
-                          aria-label={`Dicatat pukul ${time.format(new Date(transaction.createdAt))}`}
-                          className="tabular-nums"
-                        >
-                          {time.format(new Date(transaction.createdAt))}
-                        </time>
-                      </p>
+                      <div className="mt-1 flex min-w-0 items-center gap-1.5">
+                        <p className="min-w-0 flex-1 truncate text-[11px] leading-4 text-slate-500">
+                          {accountName(transaction.accountId)}
+                        </p>
+                        <TransactionDateTime
+                          transactionDate={transaction.transactionDate}
+                          recordedAt={transaction.createdAt}
+                        />
+                      </div>
                     </div>
-                    <div className="flex min-w-0 flex-col items-end gap-1.5">
+                    <div className="flex min-w-0 flex-col items-end justify-between gap-1 self-stretch">
                       <span
                         className={`whitespace-nowrap text-sm font-bold tabular-nums ${
                           isIncome ? "text-emerald-700" : "text-slate-800"

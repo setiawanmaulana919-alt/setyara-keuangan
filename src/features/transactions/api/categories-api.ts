@@ -33,16 +33,36 @@ export async function createCategory(input: {
   transactionType: TransactionType;
 }): Promise<Category> {
   const userId = await currentUserId();
-  const { data, error } = await getSupabaseBrowserClient()
+  const client = getSupabaseBrowserClient();
+  const name = input.name.trim();
+  const { data: existingCategories, error: lookupError } = await client
+    .from("categories")
+    .select("name")
+    .eq("owner_user_id", userId)
+    .is("family_id", null)
+    .eq("category_type", input.transactionType);
+  if (lookupError) throw lookupError;
+  if (
+    existingCategories?.some(
+      (category) => category.name.trim().toLowerCase() === name.toLowerCase(),
+    )
+  ) {
+    throw new Error("Kategori dengan nama dan jenis transaksi ini sudah ada.");
+  }
+
+  const { data, error } = await client
     .from("categories")
     .insert({
       id: id(),
       owner_user_id: userId,
-      name: input.name.trim(),
+      name,
       category_type: input.transactionType,
     })
     .select(CATEGORY_COLUMNS)
     .single();
+  if (error?.code === "23505") {
+    throw new Error("Kategori dengan nama dan jenis transaksi ini sudah ada.");
+  }
   if (error) throw error;
   return categoryFromRow(data, 0);
 }

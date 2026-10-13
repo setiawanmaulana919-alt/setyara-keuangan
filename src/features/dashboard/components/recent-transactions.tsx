@@ -5,6 +5,7 @@ import type {
   Category,
   FinancialTransaction,
 } from "@/types/data-model";
+import { TransactionDateTime } from "@/features/transactions/components/transaction-date-time";
 
 const currency = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -77,11 +78,15 @@ export function RecentTransactions({
                       </span>
                     )}
                   </div>
-                  <p className="mt-1 truncate text-xs text-slate-500">
-                    {account?.name ?? "Akun"}
-                    <span className="mx-1.5 text-slate-300">·</span>
-                    {transaction.transactionDate}
-                  </p>
+                  <div className="mt-1 flex min-w-0 items-center gap-1.5">
+                    <p className="min-w-0 flex-1 truncate text-[11px] leading-4 text-slate-500">
+                      {account?.name ?? "Akun"}
+                    </p>
+                    <TransactionDateTime
+                      transactionDate={transaction.transactionDate}
+                      recordedAt={transaction.createdAt}
+                    />
+                  </div>
                 </div>
                 <span
                   className={`whitespace-nowrap text-right text-sm font-bold tabular-nums ${income ? "text-emerald-700" : "text-slate-800"}`}
