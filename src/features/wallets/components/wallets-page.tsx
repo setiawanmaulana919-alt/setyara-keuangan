@@ -32,6 +32,7 @@ const accountTypes: Array<{
   { value: "bank", label: "Bank", icon: "▣" },
   { value: "eWallet", label: "E-wallet", icon: "◈" },
   { value: "cash", label: "Tunai", icon: "◉" },
+  { value: "savings", label: "Tabungan", icon: "▤" },
   { value: "investment", label: "Investasi", icon: "↗" },
   { value: "other", label: "Lainnya", icon: "＋" },
 ];
@@ -88,7 +89,10 @@ export default function WalletsPage() {
 
   const sourceBalances = balances.filter(
     ({ account }) =>
-      !["investment", "receivable"].includes(account.accountType),
+      !["savings", "investment", "receivable"].includes(account.accountType),
+  );
+  const savingsBalances = balances.filter(
+    ({ account }) => account.accountType === "savings",
   );
   const investmentBalances = balances.filter(
     ({ account }) => account.accountType === "investment",
@@ -96,6 +100,7 @@ export default function WalletsPage() {
   const sumBalances = (items: AccountBalance[]) =>
     items.reduce((total, item) => total + item.balance, 0);
   const sourceTotal = sumBalances(sourceBalances);
+  const savingsTotal = sumBalances(savingsBalances);
   const investmentTotal = sumBalances(investmentBalances);
   const loanReceivableTotal = loans
     .filter((loan) => loan.direction === "receivable")
@@ -104,7 +109,11 @@ export default function WalletsPage() {
     .filter((loan) => loan.direction === "payable")
     .reduce((total, loan) => total + loan.remainingAmount, 0);
   const totalBalance =
-    sourceTotal + investmentTotal + loanReceivableTotal - loanPayableTotal;
+    sourceTotal +
+    savingsTotal +
+    investmentTotal +
+    loanReceivableTotal -
+    loanPayableTotal;
   const personalCashAccounts = balances
     .filter(
       ({ account }) =>
@@ -423,7 +432,7 @@ export default function WalletsPage() {
           </article>
         ) : (
           <p className="flex min-h-[15rem] flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white p-5 text-center text-sm text-slate-500">
-            Belum ada data pada kategori ini.
+            Belum ada dompet pada bagian ini.
           </p>
         )}
       </div>
@@ -439,8 +448,7 @@ export default function WalletsPage() {
               Dompet
             </h1>
             <p className="mt-2 text-sm text-slate-500">
-              Simpan dan pantau saldo bank, e-wallet, tunai, dan sumber dana
-              lainnya.
+              Simpan dan pantau saldo sumber dana, tabungan, dan investasi.
             </p>
           </div>
         </div>
@@ -452,7 +460,7 @@ export default function WalletsPage() {
                 Ringkasan kekayaan
               </p>
               <p className="mt-2 text-sm text-slate-300">
-                Sumber dana + investasi + piutang - utang
+                Sumber dana + tabungan + investasi + piutang - utang
               </p>
               <p className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">
                 {currency.format(totalBalance)}
@@ -462,16 +470,22 @@ export default function WalletsPage() {
               {balances.length} item aktif
             </span>
           </div>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-5">
             {[
               ["Sumber Dana", sourceTotal, "text-white"],
+              ["Tabungan", savingsTotal, "text-emerald-200"],
               ["Investasi", investmentTotal, "text-blue-300"],
               ["Piutang", loanReceivableTotal, "text-emerald-300"],
               ["Utang", loanPayableTotal, "text-amber-300"],
             ].map(([label, amount, color]) => (
-              <div key={label} className="rounded-2xl bg-white/10 px-4 py-3">
-                <p className="text-xs text-slate-400">{label}</p>
-                <p className={`mt-1 text-base font-bold tabular-nums ${color}`}>
+              <div
+                key={label}
+                className="last:col-span-2 flex min-h-[4.75rem] min-w-0 flex-col justify-center rounded-2xl bg-white/10 px-3 py-3 md:last:col-span-1 sm:px-4"
+              >
+                <p className="truncate text-xs text-slate-300">{label}</p>
+                <p
+                  className={`mt-1 break-words text-sm font-bold leading-5 tabular-nums sm:text-base ${color}`}
+                >
                   {currency.format(Number(amount))}
                 </p>
               </div>
@@ -479,18 +493,18 @@ export default function WalletsPage() {
           </div>
         </section>
 
-        <div className="mt-6 grid items-stretch gap-5 lg:grid-cols-2">
+        <div className="mt-6 grid items-stretch gap-5 xl:grid-cols-3">
           <section className="flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
-            <div className="flex flex-col gap-3 border-b border-slate-200/80 pb-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
+            <div className="flex min-h-[4.5rem] items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+              <div className="flex min-w-0 items-center gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-lg text-blue-700">
                   ◈
                 </span>
-                <div>
-                  <h2 className="text-base font-bold text-slate-950 sm:text-lg">
+                <div className="min-w-0">
+                  <h2 className="whitespace-nowrap text-base font-bold text-slate-950 sm:text-lg">
                     Sumber Dana
                   </h2>
-                  <p className="mt-0.5 text-xs leading-5 text-slate-500">
+                  <p className="mt-0.5 line-clamp-2 text-xs leading-4 text-slate-500">
                     Bank, e-wallet, dan tunai
                   </p>
                 </div>
@@ -500,9 +514,9 @@ export default function WalletsPage() {
                 onClick={() =>
                   formOpen ? cancelEdit() : openCreateForm("bank")
                 }
-                className="min-h-10 w-full rounded-xl border border-blue-200 bg-white px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 sm:w-auto sm:px-4"
+                className="min-h-10 shrink-0 whitespace-nowrap rounded-xl border border-blue-200 bg-white px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 sm:text-sm"
               >
-                {formOpen ? "Tutup form" : "+ Tambah"}
+                {formOpen ? "Tutup" : "+ Tambah"}
               </button>
             </div>
             {loading ? (
@@ -512,16 +526,45 @@ export default function WalletsPage() {
             )}
           </section>
           <section className="flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
-            <div className="flex flex-col gap-3 border-b border-slate-200/80 pb-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
+            <div className="flex min-h-[4.5rem] items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-lg text-blue-700">
+                  ▤
+                </span>
+                <div className="min-w-0">
+                  <h2 className="whitespace-nowrap text-base font-bold text-slate-950 sm:text-lg">
+                    Tabungan
+                  </h2>
+                  <p className="mt-0.5 line-clamp-2 text-xs leading-4 text-slate-500">
+                    Dana untuk tujuan tertentu
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => openCreateForm("savings")}
+                className="min-h-10 shrink-0 whitespace-nowrap rounded-xl border border-blue-200 bg-white px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 sm:text-sm"
+              >
+                + Tambah
+              </button>
+            </div>
+            {loading ? (
+              <div className="mt-4 h-[17rem] animate-pulse rounded-2xl bg-slate-200/70" />
+            ) : (
+              renderBalanceCards(savingsBalances, "savings")
+            )}
+          </section>
+          <section className="flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+            <div className="flex min-h-[4.5rem] items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+              <div className="flex min-w-0 items-center gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-lg text-violet-700">
                   ↗
                 </span>
-                <div>
-                  <h2 className="text-base font-bold text-slate-950 sm:text-lg">
+                <div className="min-w-0">
+                  <h2 className="whitespace-nowrap text-base font-bold text-slate-950 sm:text-lg">
                     Investasi
                   </h2>
-                  <p className="mt-0.5 text-xs leading-5 text-slate-500">
+                  <p className="mt-0.5 line-clamp-2 text-xs leading-4 text-slate-500">
                     Pantau nilai aset investasi
                   </p>
                 </div>
@@ -529,9 +572,9 @@ export default function WalletsPage() {
               <button
                 type="button"
                 onClick={() => openCreateForm("investment")}
-                className="min-h-10 w-full rounded-xl border border-blue-200 bg-white px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 sm:w-auto sm:px-4"
+                className="min-h-10 shrink-0 whitespace-nowrap rounded-xl border border-blue-200 bg-white px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 sm:text-sm"
               >
-                + Tambah investasi
+                + Tambah
               </button>
             </div>
             {loading ? (
@@ -552,69 +595,93 @@ export default function WalletsPage() {
             editingId
               ? accountType === "investment"
                 ? "Edit investasi"
-                : "Edit sumber dana"
+                : accountType === "savings"
+                  ? "Edit tabungan"
+                  : "Edit sumber dana"
               : accountType === "investment"
                 ? "Tambah investasi"
-                : "Tambah sumber dana"
+                : accountType === "savings"
+                  ? "Tambah tabungan"
+                  : "Tambah sumber dana"
           }
           description={
             editingId
               ? "Perbarui nama, jenis, atau saldo awal dompet."
               : accountType === "investment"
                 ? "Tambahkan aset investasi yang ingin dipantau."
-                : "Tambahkan bank, e-wallet, tunai, atau sumber dana lainnya."
+                : accountType === "savings"
+                  ? "Catat rekening atau tempat penyimpanan dana tabungan."
+                  : "Tambahkan bank, e-wallet, tunai, atau sumber dana lainnya."
           }
           submitLabel={
             editingId
               ? "Simpan perubahan"
               : accountType === "investment"
                 ? "Simpan investasi"
-                : "Simpan sumber dana"
+                : accountType === "savings"
+                  ? "Simpan tabungan"
+                  : "Simpan sumber dana"
           }
           submitting={saving}
           onClose={cancelEdit}
           onSubmit={submitWallet}
         >
-          <div className="grid gap-4 sm:grid-cols-2">
+          {accountType === "savings" ? (
             <label className="label">
-              Nama
+              Nama tabungan
               <input
                 required
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 className="field"
-                placeholder={
-                  accountType === "investment"
-                    ? "Contoh: Saham BBCA"
-                    : "Contoh: Bank BRI"
-                }
+                placeholder="Contoh: Dana darurat"
               />
             </label>
-            <label className="label">
-              Kategori
-              <DropdownField
-                value={accountType}
-                onChange={(value) =>
-                  setAccountType(value as Account["accountType"])
-                }
-              >
-                {accountTypes
-                  .filter(
-                    (type) =>
-                      editingId ||
-                      (accountType === "investment" &&
-                        type.value === "investment") ||
-                      (accountType !== "investment" &&
-                        type.value !== "investment"),
-                  )
-                  .map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-              </DropdownField>
-            </label>
-          </div>
+          ) : (
+            <div
+              className={`grid gap-4 ${
+                accountType === "investment" ? "" : "sm:grid-cols-2"
+              }`}
+            >
+              <label className="label">
+                Nama
+                <input
+                  required
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="field"
+                  placeholder={
+                    accountType === "investment"
+                      ? "Contoh: Saham BBCA"
+                      : "Contoh: Bank BRI"
+                  }
+                />
+              </label>
+              {accountType !== "investment" && (
+                <label className="label">
+                  Jenis dompet
+                  <DropdownField
+                    value={accountType}
+                    onChange={(value) =>
+                      setAccountType(value as Account["accountType"])
+                    }
+                  >
+                    {accountTypes
+                      .filter(
+                        (type) =>
+                          type.value !== "savings" &&
+                          (editingId || type.value !== "investment"),
+                      )
+                      .map((type) => (
+                        <option key={type.value} value={type.value}>
+                          {type.label}
+                        </option>
+                      ))}
+                  </DropdownField>
+                </label>
+              )}
+            </div>
+          )}
           <label className="label">
             Tanggal saldo awal
             <DateField
@@ -787,7 +854,7 @@ export default function WalletsPage() {
                     )}
                   </DropdownField>
                 </label>
-                <label className="label">
+                <label className="label sm:col-span-2">
                   Harga beli{" "}
                   {investmentType === "stock" ? "per lembar" : "per unit"}
                   <div className="money-field mt-1">
@@ -831,7 +898,38 @@ export default function WalletsPage() {
               )}
             </div>
           )}
-          {accountType !== "investment" && (
+          {accountType === "savings" && (
+            <div className="space-y-4 rounded-2xl border border-blue-100 bg-gradient-to-b from-blue-50 to-white p-4 sm:p-5">
+              <div>
+                <p className="text-sm font-bold text-slate-900">
+                  Detail tabungan
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Catat saldo awal dana yang ingin Anda sisihkan.
+                </p>
+              </div>
+              <label className="label">
+                Saldo awal
+                <div className="money-field mt-1">
+                  <span className="money-field-prefix">Rp</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={openingBalance}
+                    onChange={(event) =>
+                      setOpeningBalance(formatNumberInput(event.target.value))
+                    }
+                    className="min-w-0 tabular-nums"
+                    placeholder="0"
+                  />
+                </div>
+              </label>
+              <div className="rounded-xl border border-blue-100 bg-white/80 px-3 py-2.5 text-xs text-slate-500">
+                Saldo tabungan akan mengikuti transaksi dan transfer.
+              </div>
+            </div>
+          )}
+          {accountType !== "investment" && accountType !== "savings" && (
             <label className="label">
               Saldo awal
               <div className="money-field mt-1">
@@ -849,7 +947,7 @@ export default function WalletsPage() {
               </div>
             </label>
           )}
-          {accountType !== "investment" && (
+          {accountType !== "investment" && accountType !== "savings" && (
             <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-500">
               <span className="block font-semibold text-slate-700">
                 Nilai tercatat

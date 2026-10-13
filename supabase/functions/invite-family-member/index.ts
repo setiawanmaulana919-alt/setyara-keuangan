@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
@@ -59,9 +60,12 @@ Deno.serve(async (request) => {
     typeof body.familyId === "string" ? body.familyId.trim() : "";
   const email =
     typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-  const role = body.role === "editor" ? "editor" : "viewer";
+  const role = body.role;
   if (!/^[0-9a-f-]{36}$/i.test(familyId) || !isEmail(email)) {
     return response({ error: "Family ID atau email tidak valid." }, 400);
+  }
+  if (role !== "editor" && role !== "viewer") {
+    return response({ error: "Role undangan tidak valid." }, 400);
   }
 
   const { data: family, error: familyError } = await userClient
@@ -91,22 +95,62 @@ Deno.serve(async (request) => {
 
   const { data: invited, error: inviteError } =
     await adminClient.auth.admin.inviteUserByEmail(email);
-  if (inviteError) return response({ error: inviteError.message }, 400);
-  if (!invited.user)
+  let invitedUser = invited?.user ?? null;
+  let alreadyRegistered = false;
+  if (inviteError) {
+    for (let page = 1; !invitedUser; page += 1) {
+      const { data: pageData, error: listError } =
+        await adminClient.auth.admin.listUsers({ page, perPage: 1000 });
+      if (listError) {
+        return response({ error: listError.message }, 500);
+      }
+      invitedUser =
+        pageData.users.find(
+          (candidate) => candidate.email?.toLowerCase() === email,
+        ) ?? null;
+      if (invitedUser) {
+        alreadyRegistered = true;
+        break;
+      }
+      if (pageData.users.length < 1000) break;
+    }
+    if (!invitedUser) return response({ error: inviteError.message }, 400);
+  }
+  if (!invitedUser) {
     return response({ error: "User undangan tidak dibuat." }, 502);
+  }
+  if (invitedUser.id === user.id) {
+    return response({ error: "Anda sudah menjadi owner keluarga ini." }, 409);
+  }
+  if (
+    existingMembers?.some(
+      (member) =>
+        member.user_id === invitedUser.id && member.status === "active",
+    )
+  ) {
+    return response(
+      { error: "Akun ini sudah menjadi anggota aktif keluarga." },
+      409,
+    );
+  }
 
   const { error: upsertError } = await adminClient
     .from("family_memberships")
     .upsert(
       {
         family_id: familyId,
-        user_id: invited.user.id,
+        user_id: invitedUser.id,
         role,
-        status: "invited",
+        status: "active",
       },
       { onConflict: "family_id,user_id" },
     );
   if (upsertError) return response({ error: upsertError.message }, 500);
 
-  return response({ invited: true, email, role });
+  return response({
+    invited: !alreadyRegistered,
+    alreadyRegistered,
+    email,
+    role,
+  });
 });

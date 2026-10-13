@@ -25,15 +25,37 @@ export interface FamilyMemberFinanceSummary {
   userId: string;
   totalBalance: number;
   sourceTotal: number;
+  savingsTotal: number;
   investmentTotal: number;
   receivableTotal: number;
   sourceCount: number;
+  savingsCount: number;
   investmentCount: number;
   receivableCount: number;
   loanReceivableTotal: number;
   loanPayableTotal: number;
   loanReceivableCount: number;
   loanPayableCount: number;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+async function throwFunctionError(error: unknown): Promise<never> {
+  if (
+    isRecord(error) &&
+    "context" in error &&
+    error.context instanceof Response
+  ) {
+    const payload: unknown = await error.context.clone().json();
+    if (isRecord(payload) && typeof payload.error === "string") {
+      const detail =
+        typeof payload.detail === "string" ? ` ${payload.detail}` : "";
+      throw new Error(`${payload.error}${detail}`);
+    }
+  }
+  throw error;
 }
 
 export async function listFamilyMemberFinanceSummaries(
@@ -54,9 +76,11 @@ export async function listFamilyMemberFinanceSummaries(
     user_id: unknown;
     total_balance: unknown;
     source_total: unknown;
+    savings_total: unknown;
     investment_total: unknown;
     receivable_total: unknown;
     source_count: unknown;
+    savings_count: unknown;
     investment_count: unknown;
     receivable_count: unknown;
     loan_receivable_total: unknown;
@@ -64,6 +88,13 @@ export async function listFamilyMemberFinanceSummaries(
     loan_receivable_count: unknown;
     loan_payable_count: unknown;
   }>;
+  if (
+    rows.some((row) => !("savings_total" in row) || !("savings_count" in row))
+  ) {
+    throw new Error(
+      "Ringkasan Tabungan keluarga belum tersedia. Terapkan migrasi Supabase 010_family_savings_summary.sql, lalu muat ulang halaman.",
+    );
+  }
   return rows
     .filter(
       (
@@ -72,9 +103,11 @@ export async function listFamilyMemberFinanceSummaries(
         user_id: string;
         total_balance: unknown;
         source_total: unknown;
+        savings_total: unknown;
         investment_total: unknown;
         receivable_total: unknown;
         source_count: unknown;
+        savings_count: unknown;
         investment_count: unknown;
         receivable_count: unknown;
         loan_receivable_total: unknown;
@@ -87,9 +120,11 @@ export async function listFamilyMemberFinanceSummaries(
       userId: row.user_id,
       totalBalance: Number(row.total_balance),
       sourceTotal: Number(row.source_total),
+      savingsTotal: Number(row.savings_total ?? 0),
       investmentTotal: Number(row.investment_total),
       receivableTotal: Number(row.receivable_total),
       sourceCount: Number(row.source_count),
+      savingsCount: Number(row.savings_count ?? 0),
       investmentCount: Number(row.investment_count),
       receivableCount: Number(row.receivable_count),
       loanReceivableTotal: Number(row.loan_receivable_total),
@@ -179,17 +214,28 @@ export async function inviteFamilyMember(
   familyId: string,
   email: string,
   role: Exclude<FamilyRole, "owner"> = "viewer",
-): Promise<void> {
+): Promise<{ invited: boolean; alreadyRegistered: boolean }> {
   assertUuid(familyId, "familyId");
   const value = email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
     throw new Error("Email anggota tidak valid.");
   }
-  const { error } = await getSupabaseBrowserClient().functions.invoke(
+  const { data, error } = await getSupabaseBrowserClient().functions.invoke(
     "invite-family-member",
     { body: { familyId, email: value, role } },
   );
-  if (error) throw error;
+  if (error) await throwFunctionError(error);
+  if (
+    !isRecord(data) ||
+    typeof data.invited !== "boolean" ||
+    typeof data.alreadyRegistered !== "boolean"
+  ) {
+    throw new Error("Respons undangan keluarga dari server tidak valid.");
+  }
+  return {
+    invited: data.invited,
+    alreadyRegistered: data.alreadyRegistered,
+  };
 }
 
 export async function createFamilyJoinCode(
@@ -205,23 +251,19 @@ export async function createFamilyJoinCode(
     "family-invitation-code",
     { body: { action: "create", familyId, role } },
   );
-  if (error) {
-    const response = "context" in error ? error.context : undefined;
-    if (response instanceof Response) {
-      try {
-        const payload = (await response.clone().json()) as { error?: string };
-        if (payload.error) throw new Error(payload.error);
-      } catch (reason) {
-        if (reason instanceof Error && reason.message) throw reason;
-      }
-    }
-    throw error;
+  if (error) await throwFunctionError(error);
+  if (
+    !isRecord(data) ||
+    typeof data.code !== "string" ||
+    (data.role !== "editor" && data.role !== "viewer") ||
+    typeof data.expiresInHours !== "number"
+  ) {
+    throw new Error("Respons kode gabung keluarga dari server tidak valid.");
   }
-
-  return data as {
-    code: string;
-    role: Exclude<FamilyRole, "owner">;
-    expiresInHours: number;
+  return {
+    code: data.code,
+    role: data.role,
+    expiresInHours: data.expiresInHours,
   };
 }
 
@@ -261,19 +303,11 @@ export async function joinFamilyWithCode(code: string): Promise<string> {
     "family-invitation-code",
     { body: { action: "join", code: value } },
   );
-  if (error) {
-    const response = "context" in error ? error.context : undefined;
-    if (response instanceof Response) {
-      try {
-        const payload = (await response.clone().json()) as { error?: string };
-        if (payload.error) throw new Error(payload.error);
-      } catch (reason) {
-        if (reason instanceof Error && reason.message) throw reason;
-      }
-    }
-    throw error;
+  if (error) await throwFunctionError(error);
+  if (!isRecord(data) || typeof data.familyId !== "string") {
+    throw new Error("Respons bergabung ke keluarga dari server tidak valid.");
   }
-  return (data as { familyId: string }).familyId;
+  return data.familyId;
 }
 
 export async function leaveFamily(familyId: string): Promise<void> {
@@ -282,8 +316,8 @@ export async function leaveFamily(familyId: string): Promise<void> {
     "family-invitation-code",
     { body: { action: "leave", familyId } },
   );
-  if (error) throw error;
-  if (!(data as { left?: boolean }).left) {
+  if (error) await throwFunctionError(error);
+  if (!isRecord(data) || data.left !== true) {
     throw new Error("Anda belum menjadi anggota keluarga tersebut.");
   }
 }

@@ -6,12 +6,10 @@ const currency = new Intl.NumberFormat("id-ID", {
   maximumFractionDigits: 0,
 });
 
-const labels: Partial<Record<Account["accountType"], string>> = {
-  cash: "Cash",
-  bank: "Bank",
-  eWallet: "E-wallet",
+const labels = {
+  source: "Sumber Dana",
+  savings: "Tabungan",
   investment: "Investasi",
-  other: "Lainnya",
 };
 
 export function AssetOverview({
@@ -24,16 +22,21 @@ export function AssetOverview({
   );
   const grouped = currentBalances.reduce<Record<string, number>>(
     (result, item) => {
-      const key = item.account.accountType;
+      const key =
+        item.account.accountType === "investment"
+          ? "investment"
+          : item.account.accountType === "savings"
+            ? "savings"
+            : "source";
       result[key] = (result[key] ?? 0) + item.balance;
       return result;
     },
     {},
   );
 
-  const orderedTypes = (
-    Object.keys(labels) as Array<keyof typeof labels>
-  ).filter((type) => grouped[type] !== undefined);
+  const orderedTypes = Object.keys(labels).filter(
+    (type) => grouped[type] !== undefined,
+  ) as Array<keyof typeof labels>;
   const totalBalance = currentBalances.reduce(
     (total, item) => total + item.balance,
     0,

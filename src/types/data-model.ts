@@ -16,7 +16,13 @@ export interface ScopedRecord extends DataRecord {
 export interface Account extends ScopedRecord {
   name: string;
   accountType:
-    "cash" | "bank" | "eWallet" | "investment" | "receivable" | "other";
+    | "cash"
+    | "bank"
+    | "eWallet"
+    | "savings"
+    | "investment"
+    | "receivable"
+    | "other";
   openingBalance: number;
   openingBalanceDate: string;
   investmentType?: "gold" | "deposit" | "crypto" | "stock";

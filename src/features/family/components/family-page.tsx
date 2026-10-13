@@ -123,10 +123,16 @@ export default function FamilyPage() {
     setMessage("");
     setInvitingFamilyId(familyId);
     try {
-      await inviteFamilyMember(familyId, inviteEmail, inviteRole);
+      const result = await inviteFamilyMember(
+        familyId,
+        inviteEmail,
+        inviteRole,
+      );
       setInviteEmail("");
       setMessage(
-        "Undangan berhasil dikirim. Anggota akan muncul setelah akses aktif.",
+        result.alreadyRegistered
+          ? "Akun tersebut sudah terdaftar dan sekarang memiliki akses keluarga. Beri tahu anggota untuk membuka menu Keluarga."
+          : "Undangan email berhasil dikirim. Akses keluarga aktif setelah anggota masuk.",
       );
       await refresh();
     } catch (reason) {
@@ -159,6 +165,24 @@ export default function FamilyPage() {
     } catch (reason) {
       setError(
         reason instanceof Error ? reason.message : "Kode gabung gagal dibuat.",
+      );
+    }
+  }
+
+  async function copyJoinCode(familyId: string) {
+    const code = activeCodes[familyId]?.code;
+    if (!code) return;
+    setError("");
+    try {
+      await navigator.clipboard.writeText(code);
+      setMessage(
+        "Kode gabung berhasil disalin. Bagikan kepada anggota keluarga.",
+      );
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? `Kode gabung gagal disalin. ${reason.message}`
+          : "Kode gabung gagal disalin.",
       );
     }
   }
@@ -409,9 +433,18 @@ export default function FamilyPage() {
                       </p>
                       {activeCodes[family.id] ? (
                         <div className="mt-4 flex flex-col gap-2 rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 sm:flex-row sm:items-center sm:justify-between">
-                          <p className="break-all font-mono text-lg font-bold tracking-wider text-slate-900">
-                            {activeCodes[family.id]?.code}
-                          </p>
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="break-all font-mono text-lg font-bold tracking-wider text-slate-900">
+                              {activeCodes[family.id]?.code}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => void copyJoinCode(family.id)}
+                              className="min-h-9 shrink-0 rounded-lg border border-emerald-200 bg-white px-3 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                            >
+                              Salin kode
+                            </button>
+                          </div>
                           <p className="text-xs leading-5 text-slate-600 sm:text-right">
                             Aktif sampai{" "}
                             {new Date(
@@ -499,12 +532,12 @@ export default function FamilyPage() {
                                     )}
                                   </p>
                                 </div>
-                                <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4">
-                                  <div className="flex min-w-0 flex-col justify-center rounded-xl border border-slate-100 p-3">
+                                <div className="grid min-w-0 grid-cols-2 gap-2 md:grid-cols-5">
+                                  <div className="flex min-h-24 min-w-0 flex-col justify-center rounded-xl border border-slate-100 p-3">
                                     <p className="text-[11px] font-medium leading-4 text-slate-500 sm:text-xs">
                                       Sumber dana
                                     </p>
-                                    <p className="mt-1 break-words text-xs font-semibold leading-4 text-slate-800 tabular-nums sm:text-sm">
+                                    <p className="mt-1 break-words text-sm font-semibold leading-5 text-slate-800 tabular-nums">
                                       {currency.format(
                                         finance?.sourceTotal ?? 0,
                                       )}
@@ -513,11 +546,24 @@ export default function FamilyPage() {
                                       {finance?.sourceCount ?? 0} sumber dana
                                     </p>
                                   </div>
-                                  <div className="flex min-w-0 flex-col justify-center rounded-xl border border-slate-100 p-3">
+                                  <div className="flex min-h-24 min-w-0 flex-col justify-center rounded-xl border border-emerald-100 bg-emerald-50/40 p-3">
+                                    <p className="text-[11px] font-medium leading-4 text-slate-500 sm:text-xs">
+                                      Tabungan
+                                    </p>
+                                    <p className="mt-1 break-words text-sm font-semibold leading-5 text-slate-800 tabular-nums">
+                                      {currency.format(
+                                        finance?.savingsTotal ?? 0,
+                                      )}
+                                    </p>
+                                    <p className="mt-1 text-[10px] leading-4 text-slate-500 sm:text-xs">
+                                      {finance?.savingsCount ?? 0} tabungan
+                                    </p>
+                                  </div>
+                                  <div className="flex min-h-24 min-w-0 flex-col justify-center rounded-xl border border-slate-100 p-3">
                                     <p className="text-[11px] font-medium leading-4 text-slate-500 sm:text-xs">
                                       Investasi
                                     </p>
-                                    <p className="mt-1 break-words text-xs font-semibold leading-4 text-slate-800 tabular-nums sm:text-sm">
+                                    <p className="mt-1 break-words text-sm font-semibold leading-5 text-slate-800 tabular-nums">
                                       {currency.format(
                                         finance?.investmentTotal ?? 0,
                                       )}
@@ -526,11 +572,11 @@ export default function FamilyPage() {
                                       {finance?.investmentCount ?? 0} investasi
                                     </p>
                                   </div>
-                                  <div className="flex min-w-0 flex-col justify-center rounded-xl border border-emerald-100 bg-emerald-50/40 p-3">
+                                  <div className="flex min-h-24 min-w-0 flex-col justify-center rounded-xl border border-emerald-100 bg-emerald-50/40 p-3">
                                     <p className="text-[11px] font-medium leading-4 text-slate-500 sm:text-xs">
                                       Piutang
                                     </p>
-                                    <p className="mt-1 break-words text-xs font-semibold leading-4 text-slate-800 tabular-nums sm:text-sm">
+                                    <p className="mt-1 break-words text-sm font-semibold leading-5 text-slate-800 tabular-nums">
                                       {currency.format(
                                         finance?.loanReceivableTotal ?? 0,
                                       )}
@@ -540,11 +586,11 @@ export default function FamilyPage() {
                                       catatan
                                     </p>
                                   </div>
-                                  <div className="flex min-w-0 flex-col justify-center rounded-xl border border-amber-100 bg-amber-50/40 p-3">
+                                  <div className="last:col-span-2 flex min-h-24 min-w-0 flex-col justify-center rounded-xl border border-amber-100 bg-amber-50/40 p-3 md:last:col-span-1">
                                     <p className="text-[11px] font-medium leading-4 text-slate-500 sm:text-xs">
                                       Utang
                                     </p>
-                                    <p className="mt-1 break-words text-xs font-semibold leading-4 text-slate-800 tabular-nums sm:text-sm">
+                                    <p className="mt-1 break-words text-sm font-semibold leading-5 text-slate-800 tabular-nums">
                                       {currency.format(
                                         finance?.loanPayableTotal ?? 0,
                                       )}
