@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -20,8 +20,37 @@ export const metadata: Metadata = {
   },
   description: "Pencatatan keuangan online Setyara.",
   icons: {
-    icon: "/icons/Logo_Setyara_Biru_Aksen_Emas.svg",
+    icon: [
+      { url: "/favicon.ico", sizes: "any", type: "image/x-icon" },
+      {
+        url: "/icons/setyara-app-icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/icons/setyara-app-icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+    apple: [
+      {
+        url: "/icons/setyara-apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
   },
+  appleWebApp: {
+    capable: true,
+    title: "Setyara",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0b2a55",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

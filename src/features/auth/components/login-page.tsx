@@ -347,17 +347,17 @@ export default function LoginPage() {
               : "Sudah punya akun? Masuk"}
           </button>
         </form>
+        {(message || error) && (
+          <Snackbar
+            message={error || message}
+            tone={error ? "error" : "success"}
+            onClose={() => {
+              setMessage("");
+              setError("");
+            }}
+          />
+        )}
       </section>
-      {(message || error) && (
-        <Snackbar
-          message={error || message}
-          tone={error ? "error" : "success"}
-          onClose={() => {
-            setMessage("");
-            setError("");
-          }}
-        />
-      )}
     </main>
   );
 }
