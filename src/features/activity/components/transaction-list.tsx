@@ -11,6 +11,7 @@ import {
   TransactionDetailButton,
   TransactionDetailsDialog,
 } from "@/features/transactions/components/transaction-details";
+import { isGoalCategoryName } from "@/features/transactions/api/categories-api";
 
 const currency = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -130,7 +131,7 @@ export function TransactionList({
                 const isGoalProgress = categories.some(
                   (category) =>
                     category.id === transaction.categoryId &&
-                    category.name === "Target keuangan",
+                    isGoalCategoryName(category.name),
                 );
                 const title =
                   transaction.note || categoryName(transaction.categoryId);

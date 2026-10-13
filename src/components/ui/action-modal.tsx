@@ -6,6 +6,7 @@ interface ActionModalProps {
   submitLabel: string;
   destructive?: boolean;
   submitting?: boolean;
+  submitDisabled?: boolean;
   onClose: () => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   children: React.ReactNode;
@@ -17,6 +18,7 @@ export function ActionModal({
   submitLabel,
   destructive = false,
   submitting = false,
+  submitDisabled = false,
   onClose,
   onSubmit,
   children,
@@ -83,7 +85,7 @@ export function ActionModal({
           </button>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || submitDisabled}
             className={`min-h-12 rounded-2xl px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-11 sm:rounded-xl ${
               destructive
                 ? "bg-rose-600 shadow-rose-600/20 hover:bg-rose-700"

@@ -1,12 +1,17 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { currentUserId, id, now } from "@/features/finance/api/shared";
+import {
+  currentUserId,
+  DEFAULT_CATEGORIES,
+  id,
+  now,
+} from "@/features/finance/api/shared";
 
 export async function ensureFinanceDefaults(): Promise<void> {
   const client = getSupabaseBrowserClient();
   const userId = await currentUserId();
   const [
     { count: accountCount, error: accountError },
-    { count: categoryCount, error: categoryError },
+    { error: categoryError },
   ] = await Promise.all([
     client
       .from("wallets")
@@ -15,16 +20,13 @@ export async function ensureFinanceDefaults(): Promise<void> {
       .is("family_id", null),
     client
       .from("categories")
-      .select("id", { count: "exact", head: true })
+      .select("id", { head: true })
       .eq("owner_user_id", userId)
       .is("family_id", null),
   ]);
   if (accountError) throw accountError;
   if (categoryError) throw categoryError;
   const accountsTotal = accountCount ?? 0;
-  const categoriesTotal = categoryCount ?? 0;
-  if (accountsTotal > 0 && categoriesTotal > 0) return;
-
   if (accountsTotal === 0) {
     const { error } = await client.from("wallets").insert({
       id: id(),
@@ -36,59 +38,61 @@ export async function ensureFinanceDefaults(): Promise<void> {
     });
     if (error) throw error;
   }
-  if (categoriesTotal === 0) {
-    const defaults: Array<{
-      name: string;
-      category_type: "income" | "expense";
-    }> = [
-      { name: "Pokok", category_type: "income" },
-      { name: "Sampingan", category_type: "income" },
-      { name: "Kebutuhan", category_type: "expense" },
-      { name: "Tambahan", category_type: "expense" },
-      { name: "Darurat", category_type: "expense" },
-      { name: "Lainnya", category_type: "expense" },
-    ];
-    const existingKeys = new Set<string>();
-    const { data: existingCategories, error: existingCategoryError } =
-      await client
-        .from("categories")
-        .select("name, category_type")
-        .eq("owner_user_id", userId)
-        .is("family_id", null);
-    if (existingCategoryError) throw existingCategoryError;
-    for (const category of existingCategories ?? []) {
-      existingKeys.add(
-        `${category.category_type}:${category.name.trim().toLowerCase()}`,
-      );
-    }
+  const { data: existingCategories, error: existingCategoryError } =
+    await client
+      .from("categories")
+      .select("id, name, category_type, is_archived")
+      .eq("owner_user_id", userId)
+      .is("family_id", null);
+  if (existingCategoryError) throw existingCategoryError;
 
-    for (const category of defaults) {
-      const key = `${category.category_type}:${category.name.toLowerCase()}`;
-      if (existingKeys.has(key)) continue;
-      const { error } = await client.from("categories").insert({
-        id: id(),
-        owner_user_id: userId,
-        ...category,
-      });
-      if (!error) {
-        existingKeys.add(key);
-        continue;
+  const existingByKey = new Map(
+    (existingCategories ?? []).map((category) => [
+      `${category.category_type}:${category.name.trim().toLowerCase()}`,
+      category,
+    ]),
+  );
+  for (const category of DEFAULT_CATEGORIES) {
+    const key = `${category.category_type}:${category.name.toLowerCase()}`;
+    const existing = existingByKey.get(key);
+    if (existing) {
+      if (existing.is_archived) {
+        const { error } = await client
+          .from("categories")
+          .update({ is_archived: false })
+          .eq("id", existing.id);
+        if (error) throw error;
       }
-      if (error.code !== "23505") throw error;
-
+      continue;
+    }
+    const { error } = await client.from("categories").insert({
+      id: id(),
+      owner_user_id: userId,
+      ...category,
+    });
+    if (error?.code === "23505") {
       const { data: categoriesAfterConflict, error: lookupError } = await client
         .from("categories")
-        .select("name, category_type")
+        .select("id, name, category_type, is_archived")
         .eq("owner_user_id", userId)
         .is("family_id", null);
       if (lookupError) throw lookupError;
-      const categoryExists = (categoriesAfterConflict ?? []).some(
-        (existing) =>
-          existing.category_type === category.category_type &&
-          existing.name.trim().toLowerCase() === category.name.toLowerCase(),
+      const matchingCategory = (categoriesAfterConflict ?? []).find(
+        (existingCategory) =>
+          existingCategory.category_type === category.category_type &&
+          existingCategory.name.trim().toLowerCase() ===
+            category.name.toLowerCase(),
       );
-      if (!categoryExists) throw error;
-      existingKeys.add(key);
+      if (!matchingCategory) throw error;
+      if (matchingCategory.is_archived) {
+        const { error: restoreError } = await client
+          .from("categories")
+          .update({ is_archived: false })
+          .eq("id", matchingCategory.id);
+        if (restoreError) throw restoreError;
+      }
+    } else if (error) {
+      throw error;
     }
   }
 }

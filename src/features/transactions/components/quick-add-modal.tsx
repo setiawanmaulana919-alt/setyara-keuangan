@@ -6,7 +6,12 @@ import {
   saveTransaction,
 } from "@/features/transactions/api/transactions-api";
 import { listAccounts } from "@/features/wallets/api/wallets-api";
-import { listCategories } from "@/features/transactions/api/categories-api";
+import {
+  isDefaultCategory,
+  isGoalCategoryName,
+  isOtherCategoryName,
+  listCategories,
+} from "@/features/transactions/api/categories-api";
 import { ensureFinanceDefaults } from "@/features/finance/api/initialization-api";
 import type {
   Account,
@@ -105,7 +110,7 @@ export function QuickAddModal({
       await ensureFinanceDefaults();
       const [nextAccounts, nextCategories] = await Promise.all([
         listAccounts(),
-        listCategories(),
+        listCategories(undefined, true),
       ]);
       setAccounts(nextAccounts);
       setCategories(nextCategories);
@@ -116,7 +121,11 @@ export function QuickAddModal({
         (current) =>
           current ||
           nextCategories.find(
-            (category) => category.transactionType === "expense",
+            (category) =>
+              category.transactionType === "expense" &&
+              category.familyId === nextAccounts[0]?.familyId &&
+              !isGoalCategoryName(category.name) &&
+              !category.archivedAt,
           )?.id ||
           "",
       );
@@ -155,21 +164,78 @@ export function QuickAddModal({
 
   const visibleCategories = useMemo(
     () =>
-      categories.filter(
-        (category) => category.transactionType === selectedType,
-      ),
-    [categories, selectedType],
+      categories
+        .filter(
+          (category) =>
+            category.transactionType === selectedType &&
+            category.familyId ===
+              accounts.find((account) => account.id === accountId)?.familyId &&
+            !isGoalCategoryName(category.name) &&
+            (isDefaultCategory(category.name, category.transactionType) ||
+              category.id === editingTransaction?.categoryId) &&
+            (!category.archivedAt ||
+              category.id === editingTransaction?.categoryId),
+        )
+        .sort((left, right) => {
+          const leftIsOther = isOtherCategoryName(left.name);
+          const rightIsOther = isOtherCategoryName(right.name);
+          if (leftIsOther !== rightIsOther) return leftIsOther ? 1 : -1;
+          return left.name.localeCompare(right.name, "id-ID");
+        }),
+    [
+      accountId,
+      accounts,
+      categories,
+      editingTransaction?.categoryId,
+      selectedType,
+    ],
   );
 
   function selectType(nextType: QuickAddType) {
     setSelectedType(nextType);
     if (nextType !== "transfer") {
+      const selectedFamilyId = accounts.find(
+        (account) => account.id === accountId,
+      )?.familyId;
       setCategoryId(
-        categories.find((category) => category.transactionType === nextType)
-          ?.id || "",
+        categories.find(
+          (category) =>
+            category.transactionType === nextType &&
+            category.familyId === selectedFamilyId &&
+            !isGoalCategoryName(category.name) &&
+            isDefaultCategory(category.name, category.transactionType) &&
+            !category.archivedAt,
+        )?.id || "",
       );
     }
     setError("");
+  }
+
+  function selectAccount(nextAccountId: string) {
+    setAccountId(nextAccountId);
+    const selectedFamilyId = accounts.find(
+      (account) => account.id === nextAccountId,
+    )?.familyId;
+    const categoryMatchesAccount = categories.some(
+      (category) =>
+        category.id === categoryId &&
+        category.familyId === selectedFamilyId &&
+        category.transactionType === selectedType &&
+        !category.archivedAt &&
+        !isGoalCategoryName(category.name) &&
+        isDefaultCategory(category.name, category.transactionType),
+    );
+    if (categoryMatchesAccount) return;
+    setCategoryId(
+      categories.find(
+        (category) =>
+          category.familyId === selectedFamilyId &&
+          category.transactionType === selectedType &&
+          !category.archivedAt &&
+          !isGoalCategoryName(category.name) &&
+          isDefaultCategory(category.name, category.transactionType),
+      )?.id ?? "",
+    );
   }
 
   function resetAndClose() {
@@ -363,7 +429,7 @@ export function QuickAddModal({
                 <DropdownField
                   required
                   value={accountId}
-                  onChange={setAccountId}
+                  onChange={selectAccount}
                 >
                   {accounts.map((account) => (
                     <option key={account.id} value={account.id}>
@@ -372,10 +438,11 @@ export function QuickAddModal({
                   ))}
                 </DropdownField>
               </label>
-              <label className="label">
-                Kategori
+              <div>
+                <span className="label">Kategori</span>
                 <DropdownField
                   required
+                  aria-label="Kategori transaksi"
                   value={categoryId}
                   onChange={setCategoryId}
                 >
@@ -385,7 +452,7 @@ export function QuickAddModal({
                     </option>
                   ))}
                 </DropdownField>
-              </label>
+              </div>
             </div>
           )}
 
@@ -420,7 +487,7 @@ export function QuickAddModal({
             disabled={
               submitting ||
               !accounts.length ||
-              (selectedType !== "transfer" && !visibleCategories.length)
+              (selectedType !== "transfer" && !categoryId)
             }
             className="mt-6 min-h-12 w-full rounded-2xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >

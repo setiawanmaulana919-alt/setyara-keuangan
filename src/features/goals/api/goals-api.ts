@@ -15,6 +15,7 @@ import {
   currentUserId,
 } from "@/features/finance/api/shared";
 import type { GoalProgress } from "@/features/goals/types";
+import { GOAL_CATEGORY_NAME } from "@/features/transactions/api/categories-api";
 
 export async function createSavingsGoal(input: {
   name: string;
@@ -203,7 +204,7 @@ async function getOrCreateGoalCategory(
   let query = client
     .from("categories")
     .select("id")
-    .eq("name", "Target keuangan")
+    .eq("name", GOAL_CATEGORY_NAME)
     .eq("category_type", transactionType);
   query =
     scopeValue === null
@@ -218,7 +219,7 @@ async function getOrCreateGoalCategory(
       id: id(),
       owner_user_id: goal.owner_user_id,
       family_id: goal.family_id,
-      name: "Target keuangan",
+      name: GOAL_CATEGORY_NAME,
       category_type: transactionType,
     })
     .select("id")

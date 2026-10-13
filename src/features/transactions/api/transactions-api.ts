@@ -18,6 +18,7 @@ import type {
   TransactionPage,
   TransactionCursor,
 } from "@/features/transactions/types";
+import { isGoalCategoryName } from "@/features/transactions/api/categories-api";
 
 export async function saveTransaction(
   input: TransactionInput,
@@ -39,7 +40,7 @@ export async function saveTransaction(
       .maybeSingle(),
     client
       .from("categories")
-      .select("id, owner_user_id, family_id, category_type")
+      .select("id, owner_user_id, family_id, category_type, name")
       .eq("id", input.categoryId)
       .maybeSingle(),
   ]);
@@ -47,6 +48,11 @@ export async function saveTransaction(
   if (categoryError) throw categoryError;
   if (!account) throw new Error("Akun transaksi tidak ditemukan.");
   if (!category) throw new Error("Kategori transaksi tidak ditemukan.");
+  if (isGoalCategoryName(category.name)) {
+    throw new Error(
+      "Kategori Target keuangan hanya digunakan oleh fitur Target.",
+    );
+  }
   if (
     category.owner_user_id !== account.owner_user_id ||
     category.family_id !== account.family_id ||

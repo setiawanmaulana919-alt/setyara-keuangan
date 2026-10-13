@@ -30,6 +30,18 @@ export const TRANSFER_COLUMNS =
 export const CATEGORY_COLUMNS =
   "id, owner_user_id, family_id, name, category_type, created_at, updated_at, is_archived";
 
+export const DEFAULT_CATEGORIES: Array<{
+  name: string;
+  category_type: TransactionType;
+}> = [
+  { name: "Pokok", category_type: "income" },
+  { name: "Sampingan", category_type: "income" },
+  { name: "Kebutuhan", category_type: "expense" },
+  { name: "Keinginan", category_type: "expense" },
+  { name: "Darurat", category_type: "expense" },
+  { name: "Lainnya", category_type: "expense" },
+];
+
 export const GOAL_COLUMNS =
   "id, owner_user_id, family_id, name, target_amount, target_date, created_at, updated_at";
 

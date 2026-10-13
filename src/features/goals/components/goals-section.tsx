@@ -249,20 +249,55 @@ export function GoalsSection({
           onSubmit={submitGoal}
         >
           {!editing && (
-            <label className="label">
-              Jenis target
-              <DropdownField
-                value={scope}
-                onChange={(value) => setScope(value as GoalScope)}
-              >
-                <option value="personal">Target mandiri</option>
-                <option value="family" disabled={families.length === 0}>
-                  Target keluarga
-                </option>
-              </DropdownField>
-            </label>
+            <fieldset>
+              <legend className="mb-2 text-xs font-semibold text-slate-700">
+                Jenis target
+              </legend>
+              <div className="grid grid-cols-2 gap-2">
+                {(
+                  [
+                    {
+                      value: "personal",
+                      title: "Mandiri",
+                      description: "Target keuangan pribadi",
+                      activeClass:
+                        "border-blue-300 bg-blue-50 text-blue-800 ring-2 ring-blue-100",
+                    },
+                    {
+                      value: "family",
+                      title: "Keluarga",
+                      description: "Target bersama keluarga",
+                      activeClass:
+                        "border-violet-300 bg-violet-50 text-violet-800 ring-2 ring-violet-100",
+                    },
+                  ] as const
+                ).map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    disabled={
+                      option.value === "family" && families.length === 0
+                    }
+                    onClick={() => setScope(option.value)}
+                    aria-pressed={scope === option.value}
+                    className={`min-h-16 rounded-xl border px-3 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                      scope === option.value
+                        ? option.activeClass
+                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold">
+                      {option.title}
+                    </span>
+                    <span className="mt-0.5 block text-[11px] leading-4 opacity-75">
+                      {option.description}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </fieldset>
           )}
-          {scope === "family" && !editing && (
+          {!editing && scope === "family" && (
             <label className="label">
               Keluarga
               <DropdownField required value={familyId} onChange={setFamilyId}>
@@ -273,47 +308,47 @@ export function GoalsSection({
                   </option>
                 ))}
               </DropdownField>
-              <span className="mt-1 block text-xs text-slate-500">
-                {mode === "add"
-                  ? "Alur dana: sumber dana → target ini"
-                  : "Alur dana: target ini → sumber dana"}
-              </span>
             </label>
           )}
-          <label className="label">
-            Nama target
-            <input
-              required
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="field"
-              placeholder="Dana liburan"
-            />
-          </label>
-          <label className="label">
-            Nominal target
-            <div className="money-field mt-1">
-              <span className="money-field-prefix">Rp</span>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="label">
+              Nama target
               <input
                 required
-                value={targetAmount}
-                onChange={(event) =>
-                  setTargetAmount(formatNumberInput(event.target.value))
-                }
-                className="min-w-0"
-                placeholder="0"
+                maxLength={100}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                className="field"
+                placeholder="Dana liburan"
               />
-            </div>
-          </label>
-          <label className="label">
-            Batas waktu{" "}
-            <span className="font-normal text-slate-400">(opsional)</span>
-            <DateField
-              value={targetDate}
-              onChange={setTargetDate}
-              aria-label="Batas waktu target"
-            />
-          </label>
+            </label>
+            <label className="label">
+              Nominal target
+              <div className="money-field mt-1">
+                <span className="money-field-prefix">Rp</span>
+                <input
+                  required
+                  inputMode="numeric"
+                  value={targetAmount}
+                  onChange={(event) =>
+                    setTargetAmount(formatNumberInput(event.target.value))
+                  }
+                  className="text-base font-semibold tabular-nums"
+                  placeholder="0"
+                  aria-label="Nominal target dalam rupiah"
+                />
+              </div>
+            </label>
+            <label className="label sm:col-span-2">
+              Batas waktu{" "}
+              <span className="font-normal text-slate-400">(opsional)</span>
+              <DateField
+                value={targetDate}
+                onChange={setTargetDate}
+                aria-label="Batas waktu target"
+              />
+            </label>
+          </div>
         </ActionModal>
       )}
 
@@ -329,41 +364,91 @@ export function GoalsSection({
           }}
           onSubmit={submitContribution}
         >
-          <label className="label">
-            Aksi
-            <DropdownField
-              value={mode}
-              onChange={(value) => setMode(value as "add" | "reduce")}
-            >
-              <option value="add">Tambah progres</option>
-              <option value="reduce">Kurangi progres</option>
-            </DropdownField>
-          </label>
-          <label className="label">
-            {mode === "add" ? "Uang diambil dari" : "Uang dikembalikan ke"}
-            <DropdownField required value={accountId} onChange={setAccountId}>
-              <option value="">
-                {mode === "add" ? "Pilih sumber dana" : "Pilih tujuan dana"}
-              </option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
+          <fieldset>
+            <legend className="mb-2 text-xs font-semibold text-slate-700">
+              Jenis perubahan
+            </legend>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  {
+                    value: "add",
+                    title: "Tambah progres",
+                    description: "Menambah dana target",
+                    activeClass:
+                      "border-emerald-300 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-100",
+                  },
+                  {
+                    value: "reduce",
+                    title: "Kurangi progres",
+                    description: "Mengambil dana target",
+                    activeClass:
+                      "border-amber-300 bg-amber-50 text-amber-800 ring-2 ring-amber-100",
+                  },
+                ] as const
+              ).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setMode(option.value)}
+                  aria-pressed={mode === option.value}
+                  className={`min-h-16 rounded-xl border px-3 py-2 text-left transition ${
+                    mode === option.value
+                      ? option.activeClass
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                  }`}
+                >
+                  <span className="block text-sm font-semibold">
+                    {option.title}
+                  </span>
+                  <span className="mt-0.5 block text-[11px] leading-4 opacity-75">
+                    {option.description}
+                  </span>
+                </button>
               ))}
-            </DropdownField>
-          </label>
+            </div>
+          </fieldset>
           <label className="label">
-            Nominal
-            <input
-              required
-              value={amount}
-              onChange={(event) =>
-                setAmount(formatNumberInput(event.target.value))
-              }
-              className="field tabular-nums"
-              placeholder="0"
-            />
+            Nominal progres
+            <div className="money-field mt-1">
+              <span className="money-field-prefix">Rp</span>
+              <input
+                required
+                inputMode="numeric"
+                value={amount}
+                onChange={(event) =>
+                  setAmount(formatNumberInput(event.target.value))
+                }
+                className="text-base font-semibold tabular-nums"
+                placeholder="0"
+                aria-label="Nominal progres dalam rupiah"
+              />
+            </div>
           </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="label">
+              {mode === "add" ? "Uang diambil dari" : "Uang dikembalikan ke"}
+              <DropdownField required value={accountId} onChange={setAccountId}>
+                <option value="">
+                  {mode === "add" ? "Pilih sumber dana" : "Pilih tujuan dana"}
+                </option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </DropdownField>
+            </label>
+            <label className="label">
+              Tanggal progres
+              <DateField
+                required
+                value={contributionDate}
+                onChange={setContributionDate}
+                aria-label="Tanggal progres"
+              />
+            </label>
+          </div>
         </ActionModal>
       )}
 
