@@ -228,10 +228,14 @@ export async function listTransactionsPage(
     .select(TRANSACTION_COLUMNS)
     .is("deleted_at", null)
     .order("transaction_date", { ascending: false })
+    .order("created_at", { ascending: false })
     .order("id", { ascending: false });
   if (cursor) {
     if (
       !/^\d{4}-\d{2}-\d{2}$/.test(cursor.transactionDate) ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(
+        cursor.createdAt,
+      ) ||
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
         cursor.id,
       )
@@ -239,7 +243,7 @@ export async function listTransactionsPage(
       throw new Error("Kursor transaksi tidak valid.");
     }
     query = query.or(
-      `transaction_date.lt.${cursor.transactionDate},and(transaction_date.eq.${cursor.transactionDate},id.lt.${cursor.id})`,
+      `transaction_date.lt.${cursor.transactionDate},and(transaction_date.eq.${cursor.transactionDate},created_at.lt.${cursor.createdAt}),and(transaction_date.eq.${cursor.transactionDate},created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`,
     );
   }
   const normalizedSearch = search.trim().slice(0, 100);
@@ -259,6 +263,7 @@ export async function listTransactionsPage(
       hasNextPage && lastRow
         ? {
             transactionDate: String(lastRow.transaction_date),
+            createdAt: String(lastRow.created_at),
             id: String(lastRow.id),
           }
         : null,

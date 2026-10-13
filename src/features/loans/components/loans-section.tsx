@@ -7,6 +7,7 @@ import { DateField } from "@/components/ui/date-field";
 import { DropdownField } from "@/components/ui/dropdown-field";
 import { formatNumberInput, parseNumberInput } from "@/lib/format-number";
 import { getRequestId, renewRequestId } from "@/lib/request-id";
+import { SwipeableCard } from "@/components/ui/swipeable-card";
 import {
   createLoanRecord,
   deleteLoanRecord,
@@ -373,9 +374,22 @@ export function LoansSection({
 
         <div className="mt-3 flex flex-1">
           {loan ? (
-            <article
+            <SwipeableCard
+              as="article"
               key={loan.id}
-              className="flex min-h-[15rem] w-full flex-col rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
+              onSwipeLeft={() =>
+                setActiveLoanIndexes((current) => ({
+                  ...current,
+                  [direction]: Math.min(activeIndex + 1, items.length - 1),
+                }))
+              }
+              onSwipeRight={() =>
+                setActiveLoanIndexes((current) => ({
+                  ...current,
+                  [direction]: Math.max(activeIndex - 1, 0),
+                }))
+              }
+              className="flex min-h-[15rem] w-full touch-pan-y flex-col rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
             >
               <div className="flex min-w-0 items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
@@ -479,7 +493,7 @@ export function LoansSection({
                   </button>
                 </div>
               </div>
-            </article>
+            </SwipeableCard>
           ) : (
             <div className="flex min-h-[15rem] w-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white px-5 py-8 text-center">
               <p className="text-sm font-semibold text-slate-700">
@@ -559,18 +573,50 @@ export function LoansSection({
           onClose={resetCreateForm}
           onSubmit={(event) => void submitLoan(event)}
         >
-          <label className="label">
-            Jenis pencatatan
-            <DropdownField
-              value={direction}
-              onChange={(value) => setDirection(value as LoanDirection)}
-            >
-              <option value="receivable">
-                Saya meminjamkan · menjadi piutang
-              </option>
-              <option value="payable">Saya meminjam · menjadi utang</option>
-            </DropdownField>
-          </label>
+          <fieldset>
+            <legend className="mb-2 text-xs font-semibold text-slate-700">
+              Jenis pencatatan
+            </legend>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  {
+                    value: "receivable",
+                    title: "Piutang",
+                    description: "Saya meminjamkan uang",
+                    activeClass:
+                      "border-emerald-300 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-100",
+                  },
+                  {
+                    value: "payable",
+                    title: "Utang",
+                    description: "Saya meminjam uang",
+                    activeClass:
+                      "border-amber-300 bg-amber-50 text-amber-800 ring-2 ring-amber-100",
+                  },
+                ] as const
+              ).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setDirection(option.value)}
+                  aria-pressed={direction === option.value}
+                  className={`min-h-16 rounded-xl border px-3 py-2 text-left transition ${
+                    direction === option.value
+                      ? option.activeClass
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                  }`}
+                >
+                  <span className="block text-sm font-semibold">
+                    {option.title}
+                  </span>
+                  <span className="mt-0.5 block text-[11px] leading-4 opacity-75">
+                    {option.description}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="label">
               Nama orang
@@ -585,16 +631,20 @@ export function LoansSection({
             </label>
             <label className="label">
               Jumlah pokok
-              <input
-                required
-                inputMode="numeric"
-                value={principalAmount}
-                onChange={(event) =>
-                  setPrincipalAmount(formatNumberInput(event.target.value))
-                }
-                className="field"
-                placeholder="0"
-              />
+              <div className="money-field mt-1">
+                <span className="money-field-prefix">Rp</span>
+                <input
+                  required
+                  inputMode="numeric"
+                  value={principalAmount}
+                  onChange={(event) =>
+                    setPrincipalAmount(formatNumberInput(event.target.value))
+                  }
+                  className="text-base font-semibold tabular-nums"
+                  placeholder="0"
+                  aria-label="Jumlah pokok dalam rupiah"
+                />
+              </div>
             </label>
             <label className="label">
               Dompet
@@ -616,7 +666,7 @@ export function LoansSection({
                 aria-label="Tanggal pencairan"
               />
             </label>
-            <label className="label">
+            <label className="label sm:col-span-2">
               Jatuh tempo{" "}
               <span className="font-normal text-slate-400">(opsional)</span>
               <DateField
@@ -634,8 +684,8 @@ export function LoansSection({
               maxLength={500}
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
-              className="field min-h-20 resize-y"
-              placeholder="Keterangan pinjaman"
+              className="field min-h-24 resize-y"
+              placeholder="Tambahkan detail atau kesepakatan pinjaman"
             />
           </label>
         </ActionModal>
@@ -652,41 +702,47 @@ export function LoansSection({
         >
           <label className="label">
             Jumlah pembayaran
-            <input
-              required
-              inputMode="numeric"
-              value={repaymentAmount}
-              onChange={(event) =>
-                setRepaymentAmount(formatNumberInput(event.target.value))
-              }
-              className="field"
-              placeholder="0"
-            />
+            <div className="money-field mt-1">
+              <span className="money-field-prefix">Rp</span>
+              <input
+                required
+                inputMode="numeric"
+                value={repaymentAmount}
+                onChange={(event) =>
+                  setRepaymentAmount(formatNumberInput(event.target.value))
+                }
+                className="text-base font-semibold tabular-nums"
+                placeholder="0"
+                aria-label="Jumlah pembayaran dalam rupiah"
+              />
+            </div>
           </label>
-          <label className="label">
-            Dompet
-            <DropdownField
-              required
-              value={repaymentAccountId}
-              onChange={setRepaymentAccountId}
-            >
-              <option value="">Pilih dompet</option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
-            </DropdownField>
-          </label>
-          <label className="label">
-            Tanggal pembayaran
-            <DateField
-              required
-              value={repaymentDate}
-              onChange={setRepaymentDate}
-              aria-label="Tanggal pembayaran"
-            />
-          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="label">
+              Dompet
+              <DropdownField
+                required
+                value={repaymentAccountId}
+                onChange={setRepaymentAccountId}
+              >
+                <option value="">Pilih dompet</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </DropdownField>
+            </label>
+            <label className="label">
+              Tanggal pembayaran
+              <DateField
+                required
+                value={repaymentDate}
+                onChange={setRepaymentDate}
+                aria-label="Tanggal pembayaran"
+              />
+            </label>
+          </div>
           <label className="label">
             Catatan{" "}
             <span className="font-normal text-slate-400">(opsional)</span>
@@ -694,8 +750,8 @@ export function LoansSection({
               maxLength={500}
               value={repaymentNotes}
               onChange={(event) => setRepaymentNotes(event.target.value)}
-              className="field min-h-20 resize-y"
-              placeholder="Keterangan pembayaran"
+              className="field min-h-24 resize-y"
+              placeholder="Tambahkan detail pembayaran (opsional)"
             />
           </label>
         </ActionModal>

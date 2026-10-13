@@ -39,5 +39,6 @@ export interface TransactionPage {
 
 export interface TransactionCursor {
   transactionDate: string;
+  createdAt: string;
   id: string;
 }

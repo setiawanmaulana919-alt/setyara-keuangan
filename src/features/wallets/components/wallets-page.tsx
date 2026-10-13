@@ -17,6 +17,7 @@ import { IDX_STOCKS } from "@/lib/idx-stocks";
 import { DateField } from "@/components/ui/date-field";
 import { DropdownField } from "@/components/ui/dropdown-field";
 import { useWalletData } from "@/features/wallets/hooks/use-wallet-data";
+import { SwipeableCard } from "@/components/ui/swipeable-card";
 
 const currency = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -357,9 +358,22 @@ export default function WalletsPage() {
           )}
         </div>
         {items.length ? (
-          <article
+          <SwipeableCard
+            as="article"
             key={activeItem.account.id}
-            className="flex min-h-[15rem] flex-1 flex-col rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
+            onSwipeLeft={() =>
+              setCardIndexes((current) => ({
+                ...current,
+                [category]: Math.min(activeIndex + 1, items.length - 1),
+              }))
+            }
+            onSwipeRight={() =>
+              setCardIndexes((current) => ({
+                ...current,
+                [category]: Math.max(activeIndex - 1, 0),
+              }))
+            }
+            className="flex min-h-[15rem] flex-1 touch-pan-y flex-col rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
           >
             {(() => {
               const { account, balance } = activeItem;
@@ -429,7 +443,7 @@ export default function WalletsPage() {
                 </>
               );
             })()}
-          </article>
+          </SwipeableCard>
         ) : (
           <p className="flex min-h-[15rem] flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white p-5 text-center text-sm text-slate-500">
             Belum ada dompet pada bagian ini.

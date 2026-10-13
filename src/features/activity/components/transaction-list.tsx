@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useSyncExternalStore } from "react";
 import type {
   Account,
   Category,
@@ -11,6 +12,11 @@ const currency = new Intl.NumberFormat("id-ID", {
   currency: "IDR",
   maximumFractionDigits: 0,
 });
+
+const subscribeToTimeZone = () => () => {};
+const getTimeZoneSnapshot = () =>
+  Intl.DateTimeFormat().resolvedOptions().timeZone;
+const getServerTimeZoneSnapshot = () => "UTC";
 
 interface TransactionListProps {
   transactions: FinancialTransaction[];
@@ -41,6 +47,27 @@ export function TransactionList({
   onEdit,
   onDelete,
 }: TransactionListProps) {
+  const timeZone = useSyncExternalStore(
+    subscribeToTimeZone,
+    getTimeZoneSnapshot,
+    getServerTimeZoneSnapshot,
+  );
+  const time = useMemo(
+    () =>
+      new Intl.DateTimeFormat("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone,
+      }),
+    [timeZone],
+  );
+  const sortedTransactions = [...transactions].sort(
+    (left, right) =>
+      right.transactionDate.localeCompare(left.transactionDate) ||
+      right.createdAt.localeCompare(left.createdAt) ||
+      right.id.localeCompare(left.id),
+  );
+
   const accountName = (id: string) =>
     accounts.find((account) => account.id === id)?.name || "Akun tidak dikenal";
   const categoryName = (id: string) =>
@@ -89,7 +116,11 @@ export function TransactionList({
           Memuat transaksi...
         </p>
       ) : (
-        <div className="mt-5 overflow-hidden rounded-xl border border-slate-100">
+        <div
+          role="region"
+          aria-label="Daftar transaksi"
+          className="mt-5 overflow-hidden rounded-xl border border-slate-100"
+        >
           {transactions.length === 0 ? (
             <div className="bg-slate-50/60 px-4 py-12 text-center">
               <p className="text-sm font-medium text-slate-700">
@@ -102,8 +133,8 @@ export function TransactionList({
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100">
-              {transactions.map((transaction) => {
+            <div className="divide-y divide-slate-100 [touch-action:pan-y]">
+              {sortedTransactions.map((transaction) => {
                 const isIncome = transaction.transactionType === "income";
                 const isGoalProgress = categories.some(
                   (category) =>
@@ -136,10 +167,24 @@ export function TransactionList({
                           {categoryName(transaction.categoryId)}
                         </span>
                       </div>
-                      <p className="mt-1 truncate text-xs text-slate-500">
+                      <p className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
                         {accountName(transaction.accountId)}
-                        <span className="mx-1.5 text-slate-300">·</span>
-                        {transaction.transactionDate}
+                        <span aria-hidden="true" className="text-slate-300">
+                          ·
+                        </span>
+                        <time dateTime={transaction.transactionDate}>
+                          {transaction.transactionDate}
+                        </time>
+                        <span aria-hidden="true" className="text-slate-300">
+                          ·
+                        </span>
+                        <time
+                          dateTime={transaction.createdAt}
+                          aria-label={`Dicatat pukul ${time.format(new Date(transaction.createdAt))}`}
+                          className="tabular-nums"
+                        >
+                          {time.format(new Date(transaction.createdAt))}
+                        </time>
                       </p>
                     </div>
                     <div className="flex min-w-0 flex-col items-end gap-1.5">
@@ -183,33 +228,63 @@ export function TransactionList({
           )}
         </div>
       )}
-      <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-slate-500">
+      <div className="mt-4 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
+        <p aria-live="polite" className="min-w-0 text-xs text-slate-500">
           {transactions.length === 0
             ? "Tidak ada transaksi"
-            : `Menampilkan ${page * pageSize + 1}–${page * pageSize + transactions.length}`}
+            : `${page * pageSize + 1}–${page * pageSize + transactions.length} transaksi`}
         </p>
-        <div className="flex items-center gap-2">
+        <nav
+          aria-label="Navigasi halaman aktivitas"
+          className="flex shrink-0 items-center gap-1.5"
+        >
           <button
             type="button"
             onClick={() => onPageChange(page - 1)}
             disabled={loading || page <= 0}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Halaman sebelumnya"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-600"
           >
-            Sebelumnya
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <path d="m15 18-6-6 6-6" />
+            </svg>
           </button>
-          <span className="min-w-20 text-center text-xs text-slate-500">
-            Halaman {page + 1}
+          <span
+            aria-live="polite"
+            className="min-w-16 text-center text-xs font-medium text-slate-600"
+          >
+            Halaman <span className="tabular-nums">{page + 1}</span>
           </span>
           <button
             type="button"
             onClick={() => onPageChange(page + 1)}
             disabled={loading || !hasNextPage}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Halaman berikutnya"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-600"
           >
-            Berikutnya
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
           </button>
-        </div>
+        </nav>
       </div>
     </>
   );

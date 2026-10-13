@@ -17,6 +17,7 @@ import { DateField } from "@/components/ui/date-field";
 import { DropdownField } from "@/components/ui/dropdown-field";
 import { formatNumberInput, parseNumberInput } from "@/lib/format-number";
 import { getRequestId, renewRequestId } from "@/lib/request-id";
+import { SwipeableCard } from "@/components/ui/swipeable-card";
 
 type GoalScope = "personal" | "family";
 
@@ -454,9 +455,16 @@ function GoalGroup({
       ) : (
         <div className="mt-4 min-h-[13rem]">
           {activeItem && (
-            <article
+            <SwipeableCard
+              as="article"
               key={activeItem.goal.id}
-              className="flex min-h-[13rem] flex-col rounded-xl border border-slate-200 bg-white p-4"
+              onSwipeLeft={() =>
+                setSelectedIndex(Math.min(activeIndex + 1, items.length - 1))
+              }
+              onSwipeRight={() =>
+                setSelectedIndex(Math.max(activeIndex - 1, 0))
+              }
+              className="flex min-h-[13rem] touch-pan-y flex-col rounded-xl border border-slate-200 bg-white p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -503,7 +511,7 @@ function GoalGroup({
                   </button>
                 </div>
               </div>
-            </article>
+            </SwipeableCard>
           )}
         </div>
       )}
