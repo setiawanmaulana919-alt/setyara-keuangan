@@ -195,7 +195,12 @@ export default function ProfilePage() {
     }
   }
 
-  async function saveEmail() {
+  async function saveEmail(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (newEmail.trim() === email) {
+      setError("Email baru harus berbeda dari email saat ini.");
+      return;
+    }
     setEmailSaving(true);
     setError("");
     setMessage("");
@@ -237,7 +242,10 @@ export default function ProfilePage() {
     }
   }
 
-  async function requestPasswordChange() {
+  async function requestPasswordChange(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
     if (!password || !passwordConfirmation) {
       setError("Password baru dan konfirmasi password wajib diisi.");
       return;
@@ -413,7 +421,10 @@ export default function ProfilePage() {
           <PageLoading label="Memuat profil akun..." />
         ) : (
           <div className="mt-5 grid w-full gap-5 lg:grid-cols-2">
-            <section className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgb(15_23_42/0.04)] sm:p-6">
+            <form
+              onSubmit={(event) => void saveEmail(event)}
+              className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgb(15_23_42/0.04)] sm:p-6"
+            >
               <h2 className="font-semibold text-slate-950">Email akun</h2>
               <p className="mt-1 text-sm text-slate-500">
                 Perubahan email membutuhkan konfirmasi dari email baru.
@@ -444,22 +455,19 @@ export default function ProfilePage() {
                 perubahan profil lainnya.
               </p>
               <button
-                type="button"
-                onClick={() => void saveEmail()}
-                disabled={
-                  !cloudReady ||
-                  emailSaving ||
-                  !newEmail.trim() ||
-                  newEmail.trim() === email
-                }
+                type="submit"
+                disabled={!cloudReady || emailSaving}
                 className="mt-auto pt-5 text-left disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <span className="inline-flex min-h-11 items-center rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-rose-600/20 transition-colors hover:bg-rose-700 active:bg-rose-800">
                   {emailSaving ? "Mengirim kode..." : "Konfirmasi email"}
                 </span>
               </button>
-            </section>
-            <section className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgb(15_23_42/0.04)] sm:p-6">
+            </form>
+            <form
+              onSubmit={(event) => void requestPasswordChange(event)}
+              className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgb(15_23_42/0.04)] sm:p-6"
+            >
               <h2 className="font-semibold text-slate-950">Password</h2>
               <p className="mt-1 text-sm text-slate-500">
                 Kode verifikasi akan dikirim ke email akun Anda.
@@ -520,8 +528,7 @@ export default function ProfilePage() {
                 Tombol ini hanya mengirim kode ke email akun Anda.
               </p>
               <button
-                type="button"
-                onClick={() => void requestPasswordChange()}
+                type="submit"
                 disabled={!cloudReady || passwordSaving}
                 className="mt-auto pt-5 text-left disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -529,7 +536,7 @@ export default function ProfilePage() {
                   {passwordSaving ? "Mengirim kode..." : "Konfirmasi password"}
                 </span>
               </button>
-            </section>
+            </form>
           </div>
         )}
       </div>
