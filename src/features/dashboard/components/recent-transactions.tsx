@@ -57,7 +57,7 @@ export function RecentTransactions({
             return (
               <article
                 key={transaction.id}
-                className={`grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-3 py-3.5 transition-colors hover:bg-slate-50 sm:gap-4 sm:px-4 ${
+                className={`grid min-h-[72px] min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-3 py-3.5 transition-colors hover:bg-slate-50 sm:gap-4 sm:px-4 ${
                   index > 0 ? "border-t border-slate-100" : ""
                 }`}
               >
@@ -68,32 +68,27 @@ export function RecentTransactions({
                   {income ? "↗" : "↘"}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                    <p className="min-w-0 truncate text-sm font-semibold text-slate-800">
-                      {transaction.note || category?.name || "Transaksi"}
-                    </p>
-                    {category?.name && transaction.note && (
-                      <span className="hidden rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500 sm:inline-flex">
-                        {category.name}
-                      </span>
-                    )}
-                  </div>
+                  <p className="truncate text-sm font-semibold text-slate-800">
+                    {transaction.note || category?.name || "Transaksi"}
+                  </p>
                   <div className="mt-1 flex min-w-0 items-center gap-1.5">
-                    <p className="min-w-0 flex-1 truncate text-[11px] leading-4 text-slate-500">
+                    <p className="min-w-0 truncate text-[11px] leading-4 text-slate-500">
                       {account?.name ?? "Akun"}
                     </p>
-                    <TransactionDateTime
-                      transactionDate={transaction.transactionDate}
-                      recordedAt={transaction.createdAt}
-                    />
                   </div>
                 </div>
-                <span
-                  className={`whitespace-nowrap text-right text-sm font-bold tabular-nums ${income ? "text-emerald-700" : "text-slate-800"}`}
-                >
-                  {income ? "+" : "-"}
-                  {currency.format(transaction.amount)}
-                </span>
+                <div className="flex min-w-0 flex-col items-end gap-1">
+                  <span
+                    className={`whitespace-nowrap text-right text-sm font-bold tabular-nums ${income ? "text-emerald-700" : "text-slate-800"}`}
+                  >
+                    {income ? "+" : "-"}
+                    {currency.format(transaction.amount)}
+                  </span>
+                  <TransactionDateTime
+                    transactionDate={transaction.transactionDate}
+                    recordedAt={transaction.createdAt}
+                  />
+                </div>
               </article>
             );
           })

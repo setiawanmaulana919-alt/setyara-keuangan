@@ -127,14 +127,14 @@ export function TransactionList({
                 return (
                   <article
                     key={transaction.id}
-                    className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-3 py-3.5 transition-colors hover:bg-slate-50 sm:gap-4 sm:px-4"
+                    className="grid min-h-[72px] min-w-0 grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-3.5 transition-colors hover:bg-slate-50 sm:gap-4 sm:px-4"
                   >
                     <span
                       aria-hidden="true"
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-base font-semibold ring-1 ring-inset ${
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-semibold ${
                         isIncome
-                          ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
-                          : "bg-rose-50 text-rose-700 ring-rose-100"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-rose-50 text-rose-700"
                       }`}
                     >
                       {isIncome ? "↗" : "↘"}
@@ -146,47 +146,73 @@ export function TransactionList({
                         </p>
                       </div>
                       <div className="mt-1 flex min-w-0 items-center gap-1.5">
-                        <p className="min-w-0 flex-1 truncate text-[11px] leading-4 text-slate-500">
+                        <p className="min-w-0 truncate text-[11px] leading-4 text-slate-500">
                           {accountName(transaction.accountId)}
                         </p>
-                        <TransactionDateTime
-                          transactionDate={transaction.transactionDate}
-                          recordedAt={transaction.createdAt}
-                        />
                       </div>
                     </div>
-                    <div className="flex min-w-0 flex-col items-end justify-between gap-1 self-stretch">
+                    <div className="flex min-w-0 flex-col items-end justify-center gap-1">
                       <span
                         className={`whitespace-nowrap text-sm font-bold tabular-nums ${
                           isIncome ? "text-emerald-700" : "text-slate-800"
                         }`}
                       >
-                        {isIncome ? "+" : "−"}
+                        {isIncome ? "+" : "-"}
                         {currency.format(transaction.amount)}
                       </span>
+                      <TransactionDateTime
+                        transactionDate={transaction.transactionDate}
+                        recordedAt={transaction.createdAt}
+                      />
+                    </div>
+                    <div className="flex flex-col items-center gap-1.5">
                       {isGoalProgress ? (
-                        <span className="text-[11px] font-medium text-slate-400">
+                        <span className="whitespace-nowrap text-[11px] font-medium text-slate-400">
                           Kelola dari Target
                         </span>
                       ) : (
-                        <div className="flex items-center gap-1 text-[11px] font-semibold">
+                        <>
                           <button
                             type="button"
                             aria-label={`Edit ${title}`}
+                            title="Edit transaksi"
                             onClick={() => onEdit(transaction)}
-                            className="rounded-md px-1.5 py-0.5 text-slate-500 transition hover:bg-blue-50 hover:text-blue-700"
+                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                           >
-                            Edit
+                            <svg
+                              aria-hidden="true"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-3.5 w-3.5"
+                            >
+                              <path d="m15 5 4 4M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16z" />
+                            </svg>
                           </button>
                           <button
                             type="button"
                             aria-label={`Hapus ${title}`}
+                            title="Hapus transaksi"
                             onClick={() => onDelete(transaction)}
-                            className="rounded-md px-1.5 py-0.5 text-slate-500 transition hover:bg-rose-50 hover:text-rose-700"
+                            className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600"
                           >
-                            Hapus
+                            <svg
+                              aria-hidden="true"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-3.5 w-3.5"
+                            >
+                              <path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3" />
+                            </svg>
                           </button>
-                        </div>
+                        </>
                       )}
                     </div>
                   </article>

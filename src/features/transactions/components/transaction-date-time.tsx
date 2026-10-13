@@ -16,6 +16,7 @@ const fullDateFormatter = new Intl.DateTimeFormat("id-ID", {
 const compactDateFormatter = new Intl.DateTimeFormat("id-ID", {
   day: "numeric",
   month: "short",
+  year: "numeric",
   timeZone: "UTC",
 });
 
@@ -45,8 +46,13 @@ export function TransactionDateTime({
   const fullDate = fullDateFormatter.format(date);
 
   return (
-    <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium leading-4 text-slate-500 tabular-nums">
-      <time dateTime={transactionDate} aria-label={fullDate} title={fullDate}>
+    <span className="inline-flex shrink-0 items-baseline gap-1.5 whitespace-nowrap text-[11px] font-medium leading-4 tabular-nums">
+      <time
+        dateTime={transactionDate}
+        aria-label={fullDate}
+        title={fullDate}
+        className="text-slate-500"
+      >
         {compactDateFormatter.format(date)}
       </time>
       <span aria-hidden="true" className="text-slate-300">
@@ -55,6 +61,7 @@ export function TransactionDateTime({
       <time
         dateTime={recordedAt}
         aria-label={`Dicatat pukul ${timeFormatter.format(recordedDate)}`}
+        className="text-slate-600"
       >
         {timeFormatter.format(recordedDate)}
       </time>
