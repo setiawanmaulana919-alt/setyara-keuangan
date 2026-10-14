@@ -7,10 +7,7 @@ import type {
   FinancialTransaction,
 } from "@/types/data-model";
 import { TransactionDateTime } from "@/features/transactions/components/transaction-date-time";
-import {
-  TransactionDetailButton,
-  TransactionDetailsDialog,
-} from "@/features/transactions/components/transaction-details";
+import { TransactionDetailsDialog } from "@/features/transactions/components/transaction-details";
 import { isGoalCategoryName } from "@/features/transactions/api/categories-api";
 
 const currency = new Intl.NumberFormat("id-ID", {
@@ -138,7 +135,17 @@ export function TransactionList({
                 return (
                   <article
                     key={transaction.id}
-                    className="grid min-h-[72px] min-w-0 grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-3.5 transition-colors hover:bg-slate-50 sm:gap-4 sm:px-4"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Lihat detail transaksi: ${title}`}
+                    onClick={() => setSelectedTransaction(transaction)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedTransaction(transaction);
+                      }
+                    }}
+                    className="grid min-h-[72px] min-w-0 cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-3.5 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-600 sm:gap-4 sm:px-4"
                   >
                     <span
                       aria-hidden="true"
@@ -151,17 +158,13 @@ export function TransactionList({
                       {isIncome ? "↗" : "↘"}
                     </span>
                     <div className="min-w-0">
-                      <TransactionDetailButton
-                        text={title}
-                        className="text-sm font-semibold text-slate-800"
-                        onClick={() => setSelectedTransaction(transaction)}
-                      />
+                      <p className="truncate text-sm font-semibold text-slate-800">
+                        {title}
+                      </p>
                       <div className="mt-1 flex min-w-0 items-center gap-1.5">
-                        <TransactionDetailButton
-                          text={accountName(transaction.accountId)}
-                          className="text-[11px] leading-4 text-slate-500"
-                          onClick={() => setSelectedTransaction(transaction)}
-                        />
+                        <p className="truncate text-[11px] leading-4 text-slate-500">
+                          {accountName(transaction.accountId)}
+                        </p>
                       </div>
                     </div>
                     <div className="flex min-w-0 flex-col items-end justify-center gap-1">
@@ -205,7 +208,10 @@ export function TransactionList({
                             type="button"
                             aria-label={`Edit ${title}`}
                             title="Edit transaksi"
-                            onClick={() => onEdit(transaction)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onEdit(transaction);
+                            }}
                             className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                           >
                             <svg
@@ -225,7 +231,10 @@ export function TransactionList({
                             type="button"
                             aria-label={`Hapus ${title}`}
                             title="Hapus transaksi"
-                            onClick={() => onDelete(transaction)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onDelete(transaction);
+                            }}
                             className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600"
                           >
                             <svg
