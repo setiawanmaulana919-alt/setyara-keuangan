@@ -5,7 +5,10 @@ import {
   createTransfer,
   saveTransaction,
 } from "@/features/transactions/api/transactions-api";
-import { listAccounts } from "@/features/wallets/api/wallets-api";
+import {
+  formatAccountSpendError,
+  listAccounts,
+} from "@/features/wallets/api/wallets-api";
 import {
   isDefaultCategory,
   isGoalCategoryName,
@@ -190,7 +193,6 @@ export function QuickAddModal({
       selectedType,
     ],
   );
-
   function selectType(nextType: QuickAddType) {
     setSelectedType(nextType);
     if (nextType !== "transfer") {
@@ -285,9 +287,7 @@ export function QuickAddModal({
       setRequestId(renewRequestId("keuangan.quick-add-request-id"));
       onClose();
     } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : "Data gagal disimpan.",
-      );
+      setError(formatAccountSpendError(reason));
     } finally {
       setSubmitting(false);
     }
@@ -307,7 +307,7 @@ export function QuickAddModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="quick-add-title"
-        className="max-h-[94vh] w-full overflow-y-auto rounded-t-[30px] border border-white/70 bg-[#f8fafc] p-5 shadow-2xl sm:max-w-xl sm:rounded-[30px] sm:p-7"
+        className="max-h-[94vh] w-full overflow-y-auto rounded-t-[26px] border border-white/70 bg-[#f8fafc] p-4 shadow-2xl sm:max-w-xl sm:rounded-[30px] sm:p-7"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -316,7 +316,7 @@ export function QuickAddModal({
             </p>
             <h2
               id="quick-add-title"
-              className="mt-2 text-2xl font-bold tracking-tight text-slate-950"
+              className="mt-1.5 text-xl font-bold tracking-tight text-slate-950 sm:mt-2 sm:text-2xl"
             >
               {editingTransaction ? "Edit transaksi" : "Tambah transaksi"}
             </h2>
@@ -334,7 +334,7 @@ export function QuickAddModal({
           </button>
         </div>
 
-        <div className="mt-6 grid grid-cols-3 gap-2">
+        <div className="mt-4 grid grid-cols-3 gap-1.5 sm:mt-6 sm:gap-2">
           {typeOptions.map((option) => {
             const active = selectedType === option.value;
             return (
@@ -342,7 +342,7 @@ export function QuickAddModal({
                 key={option.value}
                 type="button"
                 onClick={() => selectType(option.value)}
-                className={`rounded-2xl border p-3 text-left transition ${
+                className={`rounded-xl border p-2 text-left transition sm:rounded-2xl sm:p-3 ${
                   active
                     ? "border-blue-500 bg-blue-50 ring-2 ring-blue-100"
                     : "border-slate-200 bg-white hover:border-blue-200"
@@ -350,7 +350,7 @@ export function QuickAddModal({
                 aria-pressed={active}
               >
                 <span
-                  className={`flex h-9 w-9 items-center justify-center rounded-xl text-lg font-bold ${
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg text-base font-bold sm:h-9 sm:w-9 sm:rounded-xl sm:text-lg ${
                     active
                       ? "bg-blue-600 text-white"
                       : "bg-slate-100 text-slate-600"
@@ -358,10 +358,10 @@ export function QuickAddModal({
                 >
                   {option.icon}
                 </span>
-                <span className="mt-3 block text-sm font-semibold text-slate-900">
+                <span className="mt-2 block text-xs font-semibold text-slate-900 sm:mt-3 sm:text-sm">
                   {option.label}
                 </span>
-                <span className="mt-1 block text-[11px] leading-4 text-slate-500">
+                <span className="mt-1 hidden text-[11px] leading-4 text-slate-500 sm:block">
                   {option.description}
                 </span>
               </button>
@@ -371,7 +371,7 @@ export function QuickAddModal({
 
         <form
           onSubmit={submit}
-          className="mt-6 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5"
+          className="mt-4 rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm sm:mt-6 sm:p-5"
         >
           <label className="label">
             Nominal
@@ -385,19 +385,20 @@ export function QuickAddModal({
                 onChange={(event) =>
                   setAmount(formatNumberInput(event.target.value))
                 }
-                className="min-w-0 text-lg font-semibold tabular-nums"
+                className="min-w-0 text-base font-semibold tabular-nums sm:text-lg"
                 placeholder="0"
               />
             </div>
           </label>
 
           {selectedType === "transfer" ? (
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <label className="label">
-                Dari akun
+            <div className="mt-3 grid gap-3 sm:mt-4 sm:gap-4 sm:grid-cols-2">
+              <div>
+                <span className="label">Dari akun</span>
                 <DropdownField
                   required
                   value={fromAccountId}
+                  aria-label="Dari akun"
                   onChange={setFromAccountId}
                 >
                   {accounts.map((account) => (
@@ -406,7 +407,7 @@ export function QuickAddModal({
                     </option>
                   ))}
                 </DropdownField>
-              </label>
+              </div>
               <label className="label">
                 Ke akun
                 <DropdownField
@@ -423,12 +424,13 @@ export function QuickAddModal({
               </label>
             </div>
           ) : (
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <label className="label">
-                Akun
+            <div className="mt-3 grid gap-3 sm:mt-4 sm:gap-4 sm:grid-cols-2">
+              <div>
+                <span className="label">Akun</span>
                 <DropdownField
                   required
                   value={accountId}
+                  aria-label="Akun"
                   onChange={selectAccount}
                 >
                   {accounts.map((account) => (
@@ -437,7 +439,7 @@ export function QuickAddModal({
                     </option>
                   ))}
                 </DropdownField>
-              </label>
+              </div>
               <div>
                 <span className="label">Kategori</span>
                 <DropdownField
@@ -456,7 +458,7 @@ export function QuickAddModal({
             </div>
           )}
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="mt-3 grid gap-3 sm:mt-4 sm:gap-4 sm:grid-cols-2">
             <label className="label">
               Tanggal
               <DateField
@@ -489,7 +491,7 @@ export function QuickAddModal({
               !accounts.length ||
               (selectedType !== "transfer" && !categoryId)
             }
-            className="mt-6 min-h-12 w-full rounded-2xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-5 min-h-11 w-full rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:mt-6 sm:min-h-12 sm:rounded-2xl"
           >
             {submitting
               ? "Menyimpan..."

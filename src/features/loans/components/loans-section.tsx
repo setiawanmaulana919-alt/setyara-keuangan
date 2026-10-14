@@ -8,6 +8,7 @@ import { DropdownField } from "@/components/ui/dropdown-field";
 import { formatNumberInput, parseNumberInput } from "@/lib/format-number";
 import { getRequestId, renewRequestId } from "@/lib/request-id";
 import { SwipeableCard } from "@/components/ui/swipeable-card";
+import { formatAccountSpendError } from "@/features/wallets/api/wallets-api";
 import {
   createLoanRecord,
   deleteLoanRecord,
@@ -145,9 +146,11 @@ export function LoansSection({
       }
     } catch (reason) {
       setError(
-        reason instanceof Error
-          ? reason.message
-          : "Piutang atau utang gagal disimpan.",
+        formatAccountSpendError(
+          reason instanceof Error
+            ? reason.message
+            : "Piutang atau utang gagal disimpan.",
+        ),
       );
     } finally {
       setSaving(false);
@@ -189,7 +192,11 @@ export function LoansSection({
       }
     } catch (reason) {
       setError(
-        reason instanceof Error ? reason.message : "Pembayaran gagal dicatat.",
+        formatAccountSpendError(
+          reason instanceof Error
+            ? reason.message
+            : "Pembayaran gagal dicatat.",
+        ),
       );
     } finally {
       setSaving(false);

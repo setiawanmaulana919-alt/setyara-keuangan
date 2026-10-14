@@ -19,6 +19,7 @@ import type {
   TransactionCursor,
 } from "@/features/transactions/types";
 import { isGoalCategoryName } from "@/features/transactions/api/categories-api";
+import { assertAccountCanSpend } from "@/features/wallets/api/wallets-api";
 
 export async function saveTransaction(
   input: TransactionInput,
@@ -61,10 +62,19 @@ export async function saveTransaction(
     throw new Error("Kategori tidak sesuai dengan akun atau jenis transaksi.");
   }
 
+  let existingTransaction: {
+    owner_user_id: string | null;
+    family_id: string | null;
+    account_id: string;
+    transaction_type: "income" | "expense";
+    amount: number;
+  } | null = null;
   if (existingId) {
     const { data: existing, error: existingError } = await client
       .from("financial_transactions")
-      .select("id, owner_user_id, family_id")
+      .select(
+        "id, owner_user_id, family_id, account_id, transaction_type, amount",
+      )
       .eq("id", existingId)
       .is("deleted_at", null)
       .maybeSingle();
@@ -79,6 +89,40 @@ export async function saveTransaction(
         "Transaksi tidak dapat dipindahkan ke lingkup akun lain.",
       );
     }
+    existingTransaction = existing;
+  } else if (requestId) {
+    const { data: duplicate, error: duplicateError } = await client
+      .from("financial_transactions")
+      .select(`${TRANSACTION_COLUMNS}, created_by, deleted_at`)
+      .eq("id", requestId)
+      .maybeSingle();
+    if (duplicateError) throw duplicateError;
+    if (duplicate?.deleted_at === null && duplicate.created_by === userId) {
+      const matches =
+        duplicate.owner_user_id === account.owner_user_id &&
+        duplicate.family_id === account.family_id &&
+        duplicate.account_id === input.accountId &&
+        duplicate.category_id === input.categoryId &&
+        duplicate.transaction_type === input.transactionType &&
+        Number(duplicate.amount) === input.amount &&
+        duplicate.transaction_date === input.transactionDate &&
+        (duplicate.description ?? null) === (input.note ?? null);
+      if (matches) return transactionFromRow(duplicate);
+    }
+  }
+
+  if (input.transactionType === "expense") {
+    const balanceAdjustment =
+      existingTransaction?.account_id === input.accountId
+        ? existingTransaction.transaction_type === "expense"
+          ? Number(existingTransaction.amount)
+          : -Number(existingTransaction.amount)
+        : 0;
+    await assertAccountCanSpend(
+      input.accountId,
+      input.amount,
+      balanceAdjustment,
+    );
   }
 
   const row = {
@@ -177,6 +221,29 @@ export async function createTransfer(input: TransferInput): Promise<Transfer> {
   ) {
     throw new Error("Akun transfer harus berada pada lingkup yang sama.");
   }
+
+  if (input.requestId) {
+    const { data: duplicate, error: duplicateError } = await client
+      .from("wallet_transfers")
+      .select(`${TRANSFER_COLUMNS}, created_by, deleted_at`)
+      .eq("id", input.requestId)
+      .maybeSingle();
+    if (duplicateError) throw duplicateError;
+    if (
+      duplicate?.deleted_at === null &&
+      duplicate.created_by === userId &&
+      duplicate.owner_user_id === fromAccount.owner_user_id &&
+      duplicate.family_id === fromAccount.family_id &&
+      duplicate.from_account_id === input.fromAccountId &&
+      duplicate.to_account_id === input.toAccountId &&
+      Number(duplicate.amount) === input.amount &&
+      duplicate.transfer_date === input.transferDate &&
+      (duplicate.description ?? null) === (input.note ?? null)
+    ) {
+      return transferFromRow(duplicate);
+    }
+  }
+  await assertAccountCanSpend(input.fromAccountId, input.amount);
 
   const transferRow = {
     id: input.requestId ?? id(),

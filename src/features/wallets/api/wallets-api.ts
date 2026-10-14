@@ -8,6 +8,95 @@ import {
   currentUserId,
   accountFromRow,
 } from "@/features/finance/api/shared";
+import type { AccountBalance } from "@/features/wallets/types";
+
+export function accountBalanceMap(rows: unknown): Map<string, number> {
+  if (!Array.isArray(rows)) {
+    throw new Error("Respons saldo akun dari Supabase tidak valid.");
+  }
+  const balances = new Map<string, number>();
+  for (const row of rows) {
+    if (
+      typeof row !== "object" ||
+      row === null ||
+      !("account_id" in row) ||
+      !("balance" in row) ||
+      typeof row.account_id !== "string" ||
+      (typeof row.balance !== "number" && typeof row.balance !== "string")
+    ) {
+      throw new Error("Respons saldo akun dari Supabase tidak valid.");
+    }
+    const balance = Number(row.balance);
+    if (!Number.isFinite(balance)) {
+      throw new Error("Supabase mengembalikan saldo akun yang tidak valid.");
+    }
+    balances.set(row.account_id, balance);
+  }
+  return balances;
+}
+
+export async function listAccountBalances(): Promise<AccountBalance[]> {
+  const client = getSupabaseBrowserClient();
+  const [accounts, { data, error }] = await Promise.all([
+    listAccounts(),
+    client.rpc("get_account_balances"),
+  ]);
+  if (error) throw error;
+  const balances = accountBalanceMap(data);
+
+  return accounts.map((account) => {
+    const balance = balances.get(account.id);
+    if (balance === undefined) {
+      throw new Error(`Saldo akun ${account.id} tidak ditemukan.`);
+    }
+    return { account, balance };
+  });
+}
+
+export async function assertAccountCanSpend(
+  accountId: string,
+  amount: number,
+  balanceAdjustment = 0,
+): Promise<void> {
+  if (!Number.isSafeInteger(amount) || amount < 1) {
+    throw new Error("Jumlah pengeluaran harus lebih besar dari nol.");
+  }
+  const client = getSupabaseBrowserClient();
+  const [
+    { data: account, error: accountError },
+    { data: balances, error: balanceError },
+  ] = await Promise.all([
+    client.from("wallets").select("name").eq("id", accountId).maybeSingle(),
+    client.rpc("get_account_balances"),
+  ]);
+  if (accountError) throw accountError;
+  if (balanceError) throw balanceError;
+  if (!account) throw new Error("Akun sumber dana tidak ditemukan.");
+  const balance = accountBalanceMap(balances).get(accountId);
+  if (balance === undefined) {
+    throw new Error("Saldo akun tidak dapat diperiksa.");
+  }
+  const available = balance + balanceAdjustment;
+  if (available - amount < 0 && available - amount < balance) {
+    throw new Error(
+      `Saldo akun "${account.name}" tidak cukup. Gunakan akun lain atau kurangi nominal.`,
+    );
+  }
+}
+
+export function formatAccountSpendError(reason: unknown): string {
+  const message = reason instanceof Error ? reason.message : String(reason);
+  if (!message.toLocaleLowerCase("id-ID").includes("saldo akun")) {
+    return message || "Data gagal disimpan.";
+  }
+
+  const accountName = message.match(
+    /Saldo akun ["“](.+?)["”] tidak cukup/i,
+  )?.[1];
+  return accountName
+    ? `Saldo akun "${accountName}" tidak cukup. Gunakan akun lain atau kurangi nominal.`
+    : "Saldo akun tidak cukup. Gunakan akun lain atau kurangi nominal.";
+}
 
 export async function listAccounts(): Promise<Account[]> {
   const { data, error } = await getSupabaseBrowserClient()

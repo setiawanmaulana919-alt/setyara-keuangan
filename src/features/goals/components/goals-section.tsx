@@ -18,6 +18,7 @@ import { DropdownField } from "@/components/ui/dropdown-field";
 import { formatNumberInput, parseNumberInput } from "@/lib/format-number";
 import { getRequestId, renewRequestId } from "@/lib/request-id";
 import { SwipeableCard } from "@/components/ui/swipeable-card";
+import { formatAccountSpendError } from "@/features/wallets/api/wallets-api";
 
 type GoalScope = "personal" | "family";
 
@@ -162,7 +163,11 @@ export function GoalsSection({
       );
       setContributionDate(new Date().toISOString().slice(0, 10));
     } catch (reason) {
-      setError(getOperationError(reason, "Progres target gagal diubah."));
+      setError(
+        formatAccountSpendError(
+          getOperationError(reason, "Progres target gagal diubah."),
+        ),
+      );
     } finally {
       setBusy(false);
     }

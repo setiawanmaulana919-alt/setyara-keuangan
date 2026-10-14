@@ -5,6 +5,7 @@ import { AppShell } from "@/components/shared/app-shell";
 import {
   createAccount,
   deleteAccount,
+  formatAccountSpendError,
   updateAccount,
 } from "@/features/wallets/api/wallets-api";
 import type { AccountBalance } from "@/features/wallets/types";
@@ -183,7 +184,9 @@ export default function WalletsPage() {
       await refresh();
     } catch (reason) {
       setError(
-        reason instanceof Error ? reason.message : "Dompet gagal ditambahkan.",
+        formatAccountSpendError(
+          reason instanceof Error ? reason.message : "Dompet gagal disimpan.",
+        ),
       );
     } finally {
       setSaving(false);

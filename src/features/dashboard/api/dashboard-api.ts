@@ -11,7 +11,10 @@ import {
 } from "@/features/finance/api/shared";
 import type { DashboardData } from "@/features/dashboard/types";
 import type { AccountBalance } from "@/features/wallets/types";
-import { listAccounts } from "@/features/wallets/api/wallets-api";
+import {
+  accountBalanceMap,
+  listAccounts,
+} from "@/features/wallets/api/wallets-api";
 import { ensureFinanceDefaults } from "@/features/finance/api/initialization-api";
 import { getTransactionPeriodTotals } from "@/features/transactions/api/transactions-api";
 import { listGoalProgress } from "@/features/goals/api/goals-api";
@@ -31,31 +34,6 @@ export async function getAccountBalances(): Promise<AccountBalance[]> {
     }
     return { account, balance };
   });
-}
-
-function accountBalanceMap(rows: unknown): Map<string, number> {
-  if (!Array.isArray(rows)) {
-    throw new Error("Respons saldo akun dari Supabase tidak valid.");
-  }
-  const balances = new Map<string, number>();
-  for (const row of rows) {
-    if (
-      typeof row !== "object" ||
-      row === null ||
-      !("account_id" in row) ||
-      !("balance" in row) ||
-      typeof row.account_id !== "string" ||
-      (typeof row.balance !== "number" && typeof row.balance !== "string")
-    ) {
-      throw new Error("Respons saldo akun dari Supabase tidak valid.");
-    }
-    const balance = Number(row.balance);
-    if (!Number.isFinite(balance)) {
-      throw new Error("Supabase mengembalikan saldo akun yang tidak valid.");
-    }
-    balances.set(row.account_id, balance);
-  }
-  return balances;
 }
 
 export async function getDashboardData(
