@@ -29,6 +29,7 @@ export default function Home() {
     loading,
     greetingName,
     transactions,
+    transfers,
     accounts,
     categories,
     families,
@@ -143,6 +144,7 @@ export default function Home() {
           <section className="mt-5">
             <RecentTransactions
               transactions={transactions}
+              transfers={transfers}
               accounts={accounts}
               categories={categories}
             />

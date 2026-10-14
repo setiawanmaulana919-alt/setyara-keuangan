@@ -2,12 +2,14 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   ACCOUNT_COLUMNS,
   TRANSACTION_COLUMNS,
+  TRANSFER_COLUMNS,
   CATEGORY_COLUMNS,
   assertDateRange,
   assertDate,
   accountFromRow,
   categoryFromRow,
   transactionFromRow,
+  transferFromRow,
 } from "@/features/finance/api/shared";
 import type { DashboardData } from "@/features/dashboard/types";
 import type { AccountBalance } from "@/features/wallets/types";
@@ -50,6 +52,7 @@ export async function getDashboardData(
     initialAccountResult,
     initialCategoryResult,
     recentTransactionRows,
+    recentTransferRows,
     initialBalanceResult,
     goals,
     transactionPeriodTotals,
@@ -72,11 +75,20 @@ export async function getDashboardData(
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
       .limit(5),
+    client
+      .from("wallet_transfers")
+      .select(TRANSFER_COLUMNS)
+      .is("deleted_at", null)
+      .order("transfer_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(5),
     client.rpc("get_account_balances"),
     listGoalProgress(),
     getTransactionPeriodTotals(periodFrom, periodTo, true),
   ]);
   if (recentTransactionRows.error) throw recentTransactionRows.error;
+  if (recentTransferRows.error) throw recentTransferRows.error;
   let balanceResult = initialBalanceResult;
   let accountResult = initialAccountResult;
   let categoryResult = initialCategoryResult;
@@ -112,6 +124,9 @@ export async function getDashboardData(
   );
   const transactions = (recentTransactionRows.data ?? []).map((row) =>
     transactionFromRow(row),
+  );
+  const transfers = (recentTransferRows.data ?? []).map((row) =>
+    transferFromRow(row),
   );
   const balancesByAccountId = accountBalanceMap(balanceResult.data);
   const balances = accounts.map((account) => {
@@ -162,6 +177,7 @@ export async function getDashboardData(
     balances,
     goals,
     transactions,
+    transfers,
     accounts,
     categories,
   };

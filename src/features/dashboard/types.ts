@@ -2,6 +2,7 @@ import type {
   Account,
   Category,
   FinancialTransaction,
+  Transfer,
 } from "@/types/data-model";
 import type { GoalProgress } from "@/features/goals/types";
 import type { AccountBalance } from "@/features/wallets/types";
@@ -23,6 +24,7 @@ export interface DashboardData {
   balances: AccountBalance[];
   goals: GoalProgress[];
   transactions: FinancialTransaction[];
+  transfers: Transfer[];
   accounts: Account[];
   categories: Category[];
 }

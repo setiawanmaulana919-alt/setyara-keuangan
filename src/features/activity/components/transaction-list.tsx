@@ -8,7 +8,10 @@ import type {
   Transfer,
 } from "@/types/data-model";
 import { TransactionDateTime } from "@/features/transactions/components/transaction-date-time";
-import { TransactionDetailsDialog } from "@/features/transactions/components/transaction-details";
+import {
+  TransactionDetailsDialog,
+  TransferDetailsDialog,
+} from "@/features/transactions/components/transaction-details";
 import { isGoalCategoryName } from "@/features/transactions/api/categories-api";
 
 const currency = new Intl.NumberFormat("id-ID", {
@@ -54,9 +57,33 @@ export function TransactionList({
 }: TransactionListProps) {
   const [selectedTransaction, setSelectedTransaction] =
     useState<FinancialTransaction | null>(null);
+  const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(
+    null,
+  );
   const sortedTransactions = [...transactions].sort(
     (left, right) =>
       right.transactionDate.localeCompare(left.transactionDate) ||
+      right.createdAt.localeCompare(left.createdAt) ||
+      right.id.localeCompare(left.id),
+  );
+  const activities = [
+    ...sortedTransactions.map((transaction) => ({
+      kind: "transaction" as const,
+      value: transaction,
+      date: transaction.transactionDate,
+      createdAt: transaction.createdAt,
+      id: transaction.id,
+    })),
+    ...transfers.map((transfer) => ({
+      kind: "transfer" as const,
+      value: transfer,
+      date: transfer.transferDate,
+      createdAt: transfer.createdAt,
+      id: transfer.id,
+    })),
+  ].sort(
+    (left, right) =>
+      right.date.localeCompare(left.date) ||
       right.createdAt.localeCompare(left.createdAt) ||
       right.id.localeCompare(left.id),
   );
@@ -117,7 +144,7 @@ export function TransactionList({
           aria-label="Daftar transaksi"
           className="mt-5 overflow-hidden rounded-xl border border-slate-100"
         >
-          {transactions.length === 0 ? (
+          {activities.length === 0 ? (
             <div className="bg-slate-50/60 px-4 py-12 text-center">
               <p className="text-sm font-medium text-slate-700">
                 {search.trim()
@@ -130,7 +157,107 @@ export function TransactionList({
             </div>
           ) : (
             <div className="divide-y divide-slate-100 [touch-action:pan-y]">
-              {sortedTransactions.map((transaction) => {
+              {activities.map((activity) => {
+                if (activity.kind === "transfer") {
+                  const transfer = activity.value;
+                  return (
+                    <article
+                      key={transfer.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Lihat detail transfer: ${accountName(transfer.fromAccountId)} ke ${accountName(transfer.toAccountId)}`}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedTransfer(transfer);
+                        }
+                      }}
+                      onClick={() => setSelectedTransfer(transfer)}
+                      className="grid min-h-[72px] min-w-0 cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-3.5 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-600 sm:gap-4 sm:px-4"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-base font-semibold text-blue-700"
+                      >
+                        ↔
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-800">
+                          {accountName(transfer.fromAccountId)} →{" "}
+                          {accountName(transfer.toAccountId)}
+                        </p>
+                        <p className="mt-1 truncate text-[11px] text-slate-500">
+                          Transfer
+                          {transfer.note ? ` · ${transfer.note}` : ""}
+                          {transfer.transferFee > 0
+                            ? ` · Biaya ${currency.format(transfer.transferFee)}`
+                            : ""}
+                        </p>
+                      </div>
+                      <div className="flex min-w-0 flex-col items-end justify-center gap-1">
+                        <span className="whitespace-nowrap text-sm font-bold tabular-nums text-slate-800">
+                          -
+                          {currency.format(
+                            transfer.amount + transfer.transferFee,
+                          )}
+                        </span>
+                        <TransactionDateTime
+                          transactionDate={transfer.transferDate}
+                          recordedAt={transfer.createdAt}
+                        />
+                      </div>
+                      <div className="flex flex-col items-center gap-1.5">
+                        <button
+                          type="button"
+                          aria-label="Edit transfer"
+                          title="Edit transfer"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onEditTransfer(transfer);
+                          }}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-3.5 w-3.5"
+                          >
+                            <path d="m15 5 4 4M4 20l4-.8L19 8a2.1 2.1 0 0 0-3-3L5 16z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Hapus transfer"
+                          title="Hapus transfer"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onDeleteTransfer(transfer);
+                          }}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-3.5 w-3.5"
+                          >
+                            <path d="M4 7h16M10 11v6M14 11v6M5 7l1 13h12l1-13M9 7V4h6v3" />
+                          </svg>
+                        </button>
+                      </div>
+                    </article>
+                  );
+                }
+                const transaction = activity.value;
                 const isIncome = transaction.transactionType === "income";
                 const isGoalProgress = categories.some(
                   (category) =>
@@ -265,69 +392,13 @@ export function TransactionList({
               })}
             </div>
           )}
-          {transfers.length > 0 && (
-            <section className="mt-5 overflow-hidden rounded-xl border border-slate-100">
-              <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-3">
-                <h3 className="text-sm font-semibold text-slate-800">
-                  Transfer
-                </h3>
-              </div>
-              <div className="divide-y divide-slate-100">
-                {transfers.map((transfer) => (
-                  <article
-                    key={transfer.id}
-                    className="flex min-w-0 items-center justify-between gap-3 px-4 py-3.5"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-slate-800">
-                        {accountName(transfer.fromAccountId)} →{" "}
-                        {accountName(transfer.toAccountId)}
-                      </p>
-                      <p className="mt-1 text-[11px] text-slate-500">
-                        {transfer.transferDate}
-                        {transfer.note ? ` · ${transfer.note}` : ""}
-                        {transfer.transferFee > 0
-                          ? ` · Biaya ${currency.format(transfer.transferFee)}`
-                          : ""}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <p className="text-right text-sm font-bold tabular-nums text-slate-800">
-                        {currency.format(
-                          transfer.amount + transfer.transferFee,
-                        )}
-                      </p>
-                      <button
-                        type="button"
-                        aria-label="Edit transfer"
-                        title="Edit transfer"
-                        onClick={() => onEditTransfer(transfer)}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                      >
-                        ✎
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Hapus transfer"
-                        title="Hapus transfer"
-                        onClick={() => onDeleteTransfer(transfer)}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-          )}
         </div>
       )}
       <div className="mt-4 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
         <p aria-live="polite" className="min-w-0 text-xs text-slate-500">
-          {transactions.length === 0
+          {activities.length === 0
             ? "Tidak ada transaksi"
-            : `${page * pageSize + 1}–${page * pageSize + transactions.length} transaksi`}
+            : `${page * pageSize + 1}–${page * pageSize + activities.length} aktivitas`}
         </p>
         <nav
           aria-label="Navigasi halaman aktivitas"
@@ -388,6 +459,14 @@ export function TransactionList({
           accountName={accountName(selectedTransaction.accountId)}
           categoryName={categoryName(selectedTransaction.categoryId)}
           onClose={() => setSelectedTransaction(null)}
+        />
+      )}
+      {selectedTransfer && (
+        <TransferDetailsDialog
+          transfer={selectedTransfer}
+          fromAccountName={accountName(selectedTransfer.fromAccountId)}
+          toAccountName={accountName(selectedTransfer.toAccountId)}
+          onClose={() => setSelectedTransfer(null)}
         />
       )}
     </>
