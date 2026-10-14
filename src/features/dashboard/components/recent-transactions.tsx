@@ -7,10 +7,7 @@ import type {
   FinancialTransaction,
 } from "@/types/data-model";
 import { TransactionDateTime } from "@/features/transactions/components/transaction-date-time";
-import {
-  TransactionDetailButton,
-  TransactionDetailsDialog,
-} from "@/features/transactions/components/transaction-details";
+import { TransactionDetailsDialog } from "@/features/transactions/components/transaction-details";
 
 const currency = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -80,7 +77,17 @@ export function RecentTransactions({
             return (
               <article
                 key={transaction.id}
-                className={`grid min-h-[72px] min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-3 py-3.5 transition-colors hover:bg-slate-50 sm:gap-4 sm:px-4 ${
+                role="button"
+                tabIndex={0}
+                aria-label={`Lihat detail transaksi: ${transaction.note || category?.name || "Transaksi"}`}
+                onClick={() => setSelectedTransaction(transaction)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedTransaction(transaction);
+                  }
+                }}
+                className={`grid min-h-[72px] min-w-0 cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-3 py-3.5 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-600 sm:gap-4 sm:px-4 ${
                   index > 0 ? "border-t border-slate-100" : ""
                 }`}
               >
@@ -91,17 +98,13 @@ export function RecentTransactions({
                   {income ? "↗" : "↘"}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <TransactionDetailButton
-                    text={transaction.note || category?.name || "Transaksi"}
-                    className="text-sm font-semibold text-slate-800"
-                    onClick={() => setSelectedTransaction(transaction)}
-                  />
+                  <p className="truncate text-sm font-semibold text-slate-800">
+                    {transaction.note || category?.name || "Transaksi"}
+                  </p>
                   <div className="mt-1 flex min-w-0 items-center gap-1.5">
-                    <TransactionDetailButton
-                      text={account?.name ?? "Akun"}
-                      className="text-[11px] leading-4 text-slate-500"
-                      onClick={() => setSelectedTransaction(transaction)}
-                    />
+                    <p className="truncate text-[11px] leading-4 text-slate-500">
+                      {account?.name ?? "Akun"}
+                    </p>
                   </div>
                 </div>
                 <div className="flex min-w-0 flex-col items-end gap-1">
