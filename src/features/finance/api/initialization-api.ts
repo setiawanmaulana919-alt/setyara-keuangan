@@ -95,4 +95,8 @@ export async function ensureFinanceDefaults(): Promise<void> {
       throw error;
     }
   }
+  const { error: monthlyFeeError } = await client.rpc(
+    "apply_monthly_wallet_fees",
+  );
+  if (monthlyFeeError) throw monthlyFeeError;
 }

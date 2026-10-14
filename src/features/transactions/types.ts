@@ -18,6 +18,7 @@ export interface TransferInput {
   fromAccountId: string;
   toAccountId: string;
   amount: number;
+  transferFee: number;
   transferDate: string;
   note?: string;
   scopeType?: ScopeType;

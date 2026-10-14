@@ -108,12 +108,18 @@ begin
   elsif tg_table_name = 'wallet_transfers' then
     if tg_op <> 'INSERT' then
       affected_account_ids := array_append(
-        affected_account_ids, old.from_account_id, old.to_account_id
+        affected_account_ids, old.from_account_id
+      );
+      affected_account_ids := array_append(
+        affected_account_ids, old.to_account_id
       );
     end if;
     if tg_op <> 'DELETE' then
       affected_account_ids := array_append(
-        affected_account_ids, new.from_account_id, new.to_account_id
+        affected_account_ids, new.from_account_id
+      );
+      affected_account_ids := array_append(
+        affected_account_ids, new.to_account_id
       );
     end if;
   elsif tg_table_name = 'loans' then

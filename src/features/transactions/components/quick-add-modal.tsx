@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createTransfer,
   saveTransaction,
+  updateTransfer,
 } from "@/features/transactions/api/transactions-api";
 import {
   formatAccountSpendError,
@@ -20,6 +21,7 @@ import type {
   Account,
   Category,
   FinancialTransaction,
+  Transfer,
   TransactionType,
 } from "@/types/data-model";
 import { formatNumberInput, parseNumberInput } from "@/lib/format-number";
@@ -61,16 +63,19 @@ export function QuickAddModal({
   onClose,
   onSaved,
   editingTransaction,
+  editingTransfer,
 }: {
   open: boolean;
   onClose: () => void;
   onSaved?: () => void;
   editingTransaction?: FinancialTransaction | null;
+  editingTransfer?: Transfer | null;
 }) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedType, setSelectedType] = useState<QuickAddType>("expense");
   const [amount, setAmount] = useState("");
+  const [transferFee, setTransferFee] = useState("");
   const [accountId, setAccountId] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [fromAccountId, setFromAccountId] = useState("");
@@ -95,17 +100,27 @@ export function QuickAddModal({
   }, [date, open]);
 
   useEffect(() => {
-    if (!open || !editingTransaction) return;
+    if (!open || (!editingTransaction && !editingTransfer)) return;
     const timer = window.setTimeout(() => {
-      setSelectedType(editingTransaction.transactionType);
-      setAmount(formatNumberInput(String(editingTransaction.amount)));
-      setAccountId(editingTransaction.accountId);
-      setCategoryId(editingTransaction.categoryId);
-      setDate(editingTransaction.transactionDate);
-      setNote(editingTransaction.note ?? "");
+      if (editingTransfer) {
+        setSelectedType("transfer");
+        setAmount(formatNumberInput(String(editingTransfer.amount)));
+        setTransferFee(formatNumberInput(String(editingTransfer.transferFee)));
+        setFromAccountId(editingTransfer.fromAccountId);
+        setToAccountId(editingTransfer.toAccountId);
+        setDate(editingTransfer.transferDate);
+        setNote(editingTransfer.note ?? "");
+      } else if (editingTransaction) {
+        setSelectedType(editingTransaction.transactionType);
+        setAmount(formatNumberInput(String(editingTransaction.amount)));
+        setAccountId(editingTransaction.accountId);
+        setCategoryId(editingTransaction.categoryId);
+        setDate(editingTransaction.transactionDate);
+        setNote(editingTransaction.note ?? "");
+      }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [editingTransaction, open]);
+  }, [editingTransaction, editingTransfer, open]);
 
   const loadOptions = useCallback((): Promise<void> => {
     if (optionsRequestRef.current) return optionsRequestRef.current;
@@ -244,6 +259,7 @@ export function QuickAddModal({
     if (submitting) return;
     setError("");
     setAmount("");
+    setTransferFee("");
     setNote("");
     setSelectedType("expense");
     setDate("");
@@ -256,14 +272,20 @@ export function QuickAddModal({
     setSubmitting(true);
     try {
       if (selectedType === "transfer") {
-        await createTransfer({
+        const transferInput = {
           fromAccountId,
           toAccountId,
           amount: parseNumberInput(amount),
+          transferFee: parseNumberInput(transferFee || "0"),
           transferDate: date,
           note: note.trim() || undefined,
           requestId,
-        });
+        };
+        if (editingTransfer) {
+          await updateTransfer(editingTransfer.id, transferInput);
+        } else {
+          await createTransfer(transferInput);
+        }
       } else {
         await saveTransaction(
           {
@@ -281,13 +303,21 @@ export function QuickAddModal({
       onSaved?.();
       setError("");
       setAmount("");
+      setTransferFee("");
       setNote("");
       setSelectedType("expense");
       setDate("");
       setRequestId(renewRequestId("keuangan.quick-add-request-id"));
       onClose();
     } catch (reason) {
-      setError(formatAccountSpendError(reason));
+      setError(
+        formatAccountSpendError(
+          reason,
+          selectedType === "transfer"
+            ? "Transfer gagal disimpan."
+            : "Transaksi gagal disimpan.",
+        ),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -318,7 +348,9 @@ export function QuickAddModal({
               id="quick-add-title"
               className="mt-1.5 text-xl font-bold tracking-tight text-slate-950 sm:mt-2 sm:text-2xl"
             >
-              {editingTransaction ? "Edit transaksi" : "Tambah transaksi"}
+              {editingTransaction || editingTransfer
+                ? "Edit transaksi"
+                : "Tambah transaksi"}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               Pilih jenis transaksi yang ingin dicatat.
@@ -422,6 +454,23 @@ export function QuickAddModal({
                   ))}
                 </DropdownField>
               </label>
+              <label className="label sm:col-span-2">
+                Biaya transfer{" "}
+                <span className="font-normal text-slate-400">(opsional)</span>
+                <div className="money-field mt-1">
+                  <span className="money-field-prefix">Rp</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={transferFee}
+                    onChange={(event) =>
+                      setTransferFee(formatNumberInput(event.target.value))
+                    }
+                    className="min-w-0"
+                    placeholder="0"
+                  />
+                </div>
+              </label>
             </div>
           ) : (
             <div className="mt-3 grid gap-3 sm:mt-4 sm:gap-4 sm:grid-cols-2">
@@ -495,7 +544,7 @@ export function QuickAddModal({
           >
             {submitting
               ? "Menyimpan..."
-              : `${editingTransaction ? "Simpan perubahan" : `Simpan ${selectedType === "transfer" ? "transfer" : "transaksi"}`}`}
+              : `${editingTransaction || editingTransfer ? "Simpan perubahan" : `Simpan ${selectedType === "transfer" ? "transfer" : "transaksi"}`}`}
           </button>
         </form>
       </div>

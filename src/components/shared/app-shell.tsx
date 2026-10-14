@@ -98,6 +98,9 @@ export function AppShell({
   const [editingTransaction, setEditingTransaction] = useState<
     import("@/types/data-model").FinancialTransaction | null
   >(null);
+  const [editingTransfer, setEditingTransfer] = useState<
+    import("@/types/data-model").Transfer | null
+  >(null);
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
@@ -172,13 +175,24 @@ export function AppShell({
     const openEditTransaction = (event: Event) => {
       const transaction = (event as CustomEvent).detail;
       setEditingTransaction(transaction);
+      setEditingTransfer(null);
+      setQuickAddOpen(true);
+    };
+    const openEditTransfer = (event: Event) => {
+      setEditingTransaction(null);
+      setEditingTransfer((event as CustomEvent).detail);
       setQuickAddOpen(true);
     };
     window.addEventListener("open-quick-add", openQuickAdd);
     window.addEventListener("open-quick-add-edit", openEditTransaction);
+    window.addEventListener("open-quick-add-transfer-edit", openEditTransfer);
     return () => {
       window.removeEventListener("open-quick-add", openQuickAdd);
       window.removeEventListener("open-quick-add-edit", openEditTransaction);
+      window.removeEventListener(
+        "open-quick-add-transfer-edit",
+        openEditTransfer,
+      );
     };
   }, []);
 
@@ -430,13 +444,16 @@ export function AppShell({
         <QuickAddModal
           open={quickAddOpen}
           editingTransaction={editingTransaction}
+          editingTransfer={editingTransfer}
           onClose={() => {
             setQuickAddOpen(false);
             setEditingTransaction(null);
+            setEditingTransfer(null);
           }}
           onSaved={() => {
             setQuickAddOpen(false);
             setEditingTransaction(null);
+            setEditingTransfer(null);
             window.dispatchEvent(new Event("cloud-sync-updated"));
           }}
         />

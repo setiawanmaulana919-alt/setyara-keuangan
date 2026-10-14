@@ -84,10 +84,13 @@ export async function assertAccountCanSpend(
   }
 }
 
-export function formatAccountSpendError(reason: unknown): string {
-  const message = reason instanceof Error ? reason.message : String(reason);
+export function formatAccountSpendError(
+  reason: unknown,
+  fallback = "Data gagal disimpan.",
+): string {
+  const message = getOperationErrorMessage(reason);
   if (!message.toLocaleLowerCase("id-ID").includes("saldo akun")) {
-    return message || "Data gagal disimpan.";
+    return message || fallback;
   }
 
   const accountName = message.match(
@@ -96,6 +99,19 @@ export function formatAccountSpendError(reason: unknown): string {
   return accountName
     ? `Saldo akun "${accountName}" tidak cukup. Gunakan akun lain atau kurangi nominal.`
     : "Saldo akun tidak cukup. Gunakan akun lain atau kurangi nominal.";
+}
+
+function getOperationErrorMessage(reason: unknown): string {
+  if (reason instanceof Error && reason.message) return reason.message;
+  if (typeof reason !== "object" || reason === null) return "";
+
+  for (const key of ["message", "error_description", "details", "hint"]) {
+    const value = Reflect.get(reason, key);
+    if (typeof value === "string" && value.trim()) return value;
+  }
+
+  const nestedError = Reflect.get(reason, "error");
+  return nestedError === reason ? "" : getOperationErrorMessage(nestedError);
 }
 
 export async function listAccounts(): Promise<Account[]> {
@@ -112,6 +128,7 @@ export async function createAccount(input: {
   name: string;
   accountType: Account["accountType"];
   openingBalance: number;
+  monthlyAdminFee?: number;
   openingBalanceDate: string;
   investmentType?: Account["investmentType"];
   assetSymbol?: string;
@@ -124,6 +141,14 @@ export async function createAccount(input: {
   if (!Number.isSafeInteger(input.openingBalance) || input.openingBalance < 0) {
     throw new Error("openingBalance harus berupa bilangan bulat non-negatif.");
   }
+  if (
+    input.monthlyAdminFee !== undefined &&
+    (!Number.isSafeInteger(input.monthlyAdminFee) || input.monthlyAdminFee < 0)
+  ) {
+    throw new Error(
+      "Biaya admin bulanan harus berupa bilangan bulat non-negatif.",
+    );
+  }
   assertDate(input.openingBalanceDate, "openingBalanceDate");
   const userId = await currentUserId();
   const row = {
@@ -133,6 +158,7 @@ export async function createAccount(input: {
     account_type:
       input.accountType === "eWallet" ? "e_wallet" : input.accountType,
     opening_balance: input.openingBalance,
+    monthly_admin_fee: input.monthlyAdminFee ?? 0,
     opening_balance_date: input.openingBalanceDate,
     investment_type: input.investmentType ?? null,
     asset_symbol: input.assetSymbol?.trim().toUpperCase() ?? null,
@@ -157,6 +183,7 @@ export async function updateAccount(
     name: string;
     accountType: Account["accountType"];
     openingBalance: number;
+    monthlyAdminFee?: number;
     openingBalanceDate: string;
     investmentType?: Account["investmentType"];
     assetSymbol?: string;
@@ -168,6 +195,14 @@ export async function updateAccount(
   },
 ): Promise<Account> {
   assertDate(input.openingBalanceDate, "openingBalanceDate");
+  if (
+    input.monthlyAdminFee !== undefined &&
+    (!Number.isSafeInteger(input.monthlyAdminFee) || input.monthlyAdminFee < 0)
+  ) {
+    throw new Error(
+      "Biaya admin bulanan harus berupa bilangan bulat non-negatif.",
+    );
+  }
   const { data, error } = await getSupabaseBrowserClient()
     .from("wallets")
     .update({
@@ -175,6 +210,7 @@ export async function updateAccount(
       account_type:
         input.accountType === "eWallet" ? "e_wallet" : input.accountType,
       opening_balance: input.openingBalance,
+      monthly_admin_fee: input.monthlyAdminFee ?? 0,
       opening_balance_date: input.openingBalanceDate,
       investment_type: input.investmentType ?? null,
       asset_symbol: input.assetSymbol?.trim().toUpperCase() ?? null,

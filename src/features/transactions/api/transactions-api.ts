@@ -192,6 +192,9 @@ export async function createTransfer(input: TransferInput): Promise<Transfer> {
     throw new Error("Akun asal dan tujuan harus berbeda.");
   }
   assertPositiveInteger(input.amount, "amount");
+  if (!Number.isSafeInteger(input.transferFee) || input.transferFee < 0) {
+    throw new Error("Biaya transfer harus berupa bilangan bulat non-negatif.");
+  }
   assertDate(input.transferDate, "transferDate");
   const userId = await currentUserId();
   const client = getSupabaseBrowserClient();
@@ -252,6 +255,7 @@ export async function createTransfer(input: TransferInput): Promise<Transfer> {
     from_account_id: input.fromAccountId,
     to_account_id: input.toAccountId,
     amount: input.amount,
+    transfer_fee: input.transferFee,
     transfer_date: input.transferDate,
     description: input.note ?? null,
     created_by: userId,
@@ -285,6 +289,106 @@ export async function createTransfer(input: TransferInput): Promise<Transfer> {
   }
   if (error) throw error;
   return transferFromRow(data);
+}
+
+export async function updateTransfer(
+  transferId: string,
+  input: TransferInput,
+): Promise<Transfer> {
+  if (input.fromAccountId === input.toAccountId) {
+    throw new Error("Akun asal dan tujuan harus berbeda.");
+  }
+  assertPositiveInteger(input.amount, "amount");
+  if (!Number.isSafeInteger(input.transferFee) || input.transferFee < 0) {
+    throw new Error("Biaya transfer harus berupa bilangan bulat non-negatif.");
+  }
+  assertDate(input.transferDate, "transferDate");
+  const client = getSupabaseBrowserClient();
+  const { data: existing, error: existingError } = await client
+    .from("wallet_transfers")
+    .select(`${TRANSFER_COLUMNS}, owner_user_id, family_id`)
+    .eq("id", transferId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (existingError) throw existingError;
+  if (!existing)
+    throw new Error("Transfer tidak ditemukan atau sudah dihapus.");
+
+  const { data: accounts, error: accountsError } = await client
+    .from("wallets")
+    .select("id, owner_user_id, family_id")
+    .in("id", [input.fromAccountId, input.toAccountId]);
+  if (accountsError) throw accountsError;
+  const fromAccount = accounts?.find(
+    (account) => account.id === input.fromAccountId,
+  );
+  const toAccount = accounts?.find(
+    (account) => account.id === input.toAccountId,
+  );
+  if (!fromAccount || !toAccount)
+    throw new Error("Akun transfer tidak ditemukan.");
+  if (
+    fromAccount.owner_user_id !== existing.owner_user_id ||
+    fromAccount.family_id !== existing.family_id ||
+    fromAccount.owner_user_id !== toAccount.owner_user_id ||
+    fromAccount.family_id !== toAccount.family_id
+  ) {
+    throw new Error("Transfer tidak dapat dipindahkan ke lingkup akun lain.");
+  }
+
+  const oldTotal = Number(existing.amount) + Number(existing.transfer_fee ?? 0);
+  const balanceAdjustment =
+    existing.from_account_id === input.fromAccountId ? oldTotal : 0;
+  await assertAccountCanSpend(
+    input.fromAccountId,
+    input.amount + input.transferFee,
+    balanceAdjustment,
+  );
+
+  const { data, error } = await client
+    .from("wallet_transfers")
+    .update({
+      from_account_id: input.fromAccountId,
+      to_account_id: input.toAccountId,
+      amount: input.amount,
+      transfer_fee: input.transferFee,
+      transfer_date: input.transferDate,
+      description: input.note ?? null,
+    })
+    .eq("id", transferId)
+    .is("deleted_at", null)
+    .select(TRANSFER_COLUMNS)
+    .single();
+  if (error) throw error;
+  return transferFromRow(data);
+}
+
+export async function deleteTransfer(transferId: string): Promise<void> {
+  const { error } = await getSupabaseBrowserClient()
+    .from("wallet_transfers")
+    .delete()
+    .eq("id", transferId)
+    .is("deleted_at", null);
+  if (error) throw error;
+}
+
+export async function listTransfersPage(search = ""): Promise<Transfer[]> {
+  let query = getSupabaseBrowserClient()
+    .from("wallet_transfers")
+    .select(TRANSFER_COLUMNS)
+    .is("deleted_at", null)
+    .order("transfer_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(50);
+  const normalizedSearch = search.trim().slice(0, 100);
+  if (normalizedSearch) {
+    const pattern = normalizedSearch.replace(/[\\%_]/g, "\\$&");
+    query = query.ilike("description", `%${pattern}%`);
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map((row) => transferFromRow(row));
 }
 
 export async function listTransactionsPage(

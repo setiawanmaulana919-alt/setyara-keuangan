@@ -19,13 +19,13 @@ export function id(): string {
 export const QUERY_PAGE_SIZE = 1000;
 
 export const ACCOUNT_COLUMNS =
-  "id, owner_user_id, family_id, name, account_type, opening_balance, opening_balance_date, investment_type, asset_symbol, asset_quantity, asset_unit, purchase_price, market_price, market_updated_at, created_at, updated_at, is_archived";
+  "id, owner_user_id, family_id, name, account_type, opening_balance, opening_balance_date, monthly_admin_fee, investment_type, asset_symbol, asset_quantity, asset_unit, purchase_price, market_price, market_updated_at, created_at, updated_at, is_archived";
 
 export const TRANSACTION_COLUMNS =
   "id, owner_user_id, family_id, account_id, category_id, transaction_type, amount, transaction_date, description, created_at, updated_at";
 
 export const TRANSFER_COLUMNS =
-  "id, owner_user_id, family_id, from_account_id, to_account_id, amount, transfer_date, description, created_at, updated_at";
+  "id, owner_user_id, family_id, from_account_id, to_account_id, amount, transfer_fee, transfer_date, description, created_at, updated_at";
 
 export const CATEGORY_COLUMNS =
   "id, owner_user_id, family_id, name, category_type, created_at, updated_at, is_archived";
@@ -147,6 +147,7 @@ export function accountFromRow(row: Record<string, unknown>): Account {
         : (row.account_type as Account["accountType"]),
     openingBalance: Number(row.opening_balance ?? 0),
     openingBalanceDate: String(row.opening_balance_date),
+    monthlyAdminFee: Number(row.monthly_admin_fee ?? 0),
     ...(typeof row.investment_type === "string"
       ? { investmentType: row.investment_type as Account["investmentType"] }
       : {}),
@@ -226,6 +227,7 @@ export function transferFromRow(row: Record<string, unknown>): Transfer {
     fromAccountId: String(row.from_account_id),
     toAccountId: String(row.to_account_id),
     amount: Number(row.amount),
+    transferFee: Number(row.transfer_fee ?? 0),
     transferDate: String(row.transfer_date),
     note: typeof row.description === "string" ? row.description : undefined,
     createdAt: String(row.created_at),

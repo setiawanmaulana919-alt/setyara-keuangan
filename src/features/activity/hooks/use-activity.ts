@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  deleteTransfer,
   deleteTransaction,
+  listTransfersPage,
   listTransactionsPage,
 } from "@/features/transactions/api/transactions-api";
 import { listAccounts } from "@/features/wallets/api/wallets-api";
@@ -11,6 +13,7 @@ import type {
   Account,
   Category,
   FinancialTransaction,
+  Transfer,
 } from "@/types/data-model";
 
 const ACTIVITY_PAGE_SIZE = 50;
@@ -21,6 +24,7 @@ function getMessage(reason: unknown, fallback: string): string {
 
 export function useActivity() {
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
@@ -38,6 +42,9 @@ export function useActivity() {
   const [hasNextPage, setHasNextPage] = useState(false);
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [deleting, setDeleting] = useState<FinancialTransaction | null>(null);
+  const [deletingTransfer, setDeletingTransfer] = useState<Transfer | null>(
+    null,
+  );
   const [deletingBusy, setDeletingBusy] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -71,14 +78,18 @@ export function useActivity() {
     const timer = window.setTimeout(
       () => {
         setTransactionsLoading(true);
-        void listTransactionsPage(
-          pageCursors[page] ?? null,
-          ACTIVITY_PAGE_SIZE,
-          search,
-        )
-          .then((result) => {
+        void Promise.all([
+          listTransactionsPage(
+            pageCursors[page] ?? null,
+            ACTIVITY_PAGE_SIZE,
+            search,
+          ),
+          listTransfersPage(search),
+        ])
+          .then(([result, transferResult]) => {
             if (!active) return;
             setTransactions(result.transactions);
+            setTransfers(transferResult);
             setNextPageCursor(result.nextCursor);
             setHasNextPage(result.hasNextPage);
             setError("");
@@ -167,8 +178,26 @@ export function useActivity() {
     [],
   );
 
+  const removeTransfer = useCallback(
+    async (transfer: Transfer): Promise<boolean> => {
+      setError("");
+      setMessage("");
+      try {
+        await deleteTransfer(transfer.id);
+        setMessage("Transfer dihapus permanen.");
+        setRefreshVersion((version) => version + 1);
+        return true;
+      } catch (reason) {
+        setError(getMessage(reason, "Transfer gagal dihapus."));
+        return false;
+      }
+    },
+    [],
+  );
+
   return {
     transactions,
+    transfers,
     accounts,
     categories,
     search,
@@ -182,10 +211,13 @@ export function useActivity() {
     hasNextPage,
     deleting,
     setDeleting,
+    deletingTransfer,
+    setDeletingTransfer,
     deletingBusy,
     pageSize: ACTIVITY_PAGE_SIZE,
     onSearchChange,
     onPageChange,
     removeTransaction,
+    removeTransfer,
   };
 }

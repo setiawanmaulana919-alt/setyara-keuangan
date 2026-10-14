@@ -53,6 +53,7 @@ export default function WalletsPage() {
   const [accountType, setAccountType] =
     useState<Account["accountType"]>("bank");
   const [openingBalance, setOpeningBalance] = useState("");
+  const [monthlyAdminFee, setMonthlyAdminFee] = useState("");
   const [openingBalanceDate, setOpeningBalanceDate] = useState("");
   const [investmentType, setInvestmentType] =
     useState<Account["investmentType"]>("stock");
@@ -139,6 +140,7 @@ export default function WalletsPage() {
               (assetUnit === "lot" ? 100 : assetUnit === "kg" ? 1000 : 1)
             : parseNumberInput(openingBalance || "0"),
         openingBalanceDate,
+        monthlyAdminFee: parseNumberInput(monthlyAdminFee || "0"),
         investmentType:
           accountType === "investment" ? investmentType : undefined,
         assetSymbol:
@@ -169,6 +171,7 @@ export default function WalletsPage() {
       }
       setName("");
       setOpeningBalance("");
+      setMonthlyAdminFee("");
       setInvestmentType("stock");
       setAssetSymbol("");
       setAssetUnit("lot");
@@ -198,6 +201,11 @@ export default function WalletsPage() {
     setName(item.account.name);
     setAccountType(item.account.accountType);
     setOpeningBalance(formatNumberInput(String(item.account.openingBalance)));
+    setMonthlyAdminFee(
+      item.account.monthlyAdminFee
+        ? formatNumberInput(String(item.account.monthlyAdminFee))
+        : "",
+    );
     setInvestmentType(item.account.investmentType ?? "stock");
     setAssetSymbol(
       item.account.investmentType === "gold"
@@ -225,6 +233,7 @@ export default function WalletsPage() {
     setName("");
     setAccountType("bank");
     setOpeningBalance("");
+    setMonthlyAdminFee("");
     setInvestmentType("stock");
     setAssetSymbol("");
     setAssetUnit("lot");
@@ -242,6 +251,7 @@ export default function WalletsPage() {
     setName("");
     setAccountType(type);
     setOpeningBalance("");
+    setMonthlyAdminFee("");
     setInvestmentType("stock");
     setAssetSymbol("");
     setAssetUnit("lot");
@@ -708,6 +718,28 @@ export default function WalletsPage() {
               aria-label="Tanggal saldo awal"
             />
           </label>
+          {accountType !== "investment" && (
+            <label className="label">
+              Biaya admin bulanan{" "}
+              <span className="font-normal text-slate-400">(opsional)</span>
+              <div className="money-field mt-1">
+                <span className="money-field-prefix">Rp</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={monthlyAdminFee}
+                  onChange={(event) =>
+                    setMonthlyAdminFee(formatNumberInput(event.target.value))
+                  }
+                  className="min-w-0"
+                  placeholder="0"
+                />
+              </div>
+              <span className="mt-1 block text-xs font-normal text-slate-500">
+                Otomatis dicatat satu kali setiap bulan jika lebih dari Rp0.
+              </span>
+            </label>
+          )}
           {accountType === "investment" && (
             <div className="space-y-4 rounded-2xl border border-blue-100 bg-gradient-to-b from-blue-50 to-white p-4 sm:p-5">
               <div>

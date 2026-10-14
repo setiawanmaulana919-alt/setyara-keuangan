@@ -5,6 +5,7 @@ import type {
   Account,
   Category,
   FinancialTransaction,
+  Transfer,
 } from "@/types/data-model";
 import { TransactionDateTime } from "@/features/transactions/components/transaction-date-time";
 import { TransactionDetailsDialog } from "@/features/transactions/components/transaction-details";
@@ -18,6 +19,7 @@ const currency = new Intl.NumberFormat("id-ID", {
 
 interface TransactionListProps {
   transactions: FinancialTransaction[];
+  transfers: Transfer[];
   accounts: Account[];
   categories: Category[];
   search: string;
@@ -29,10 +31,13 @@ interface TransactionListProps {
   onPageChange: (page: number) => void;
   onEdit: (transaction: FinancialTransaction) => void;
   onDelete: (transaction: FinancialTransaction) => void;
+  onEditTransfer: (transfer: Transfer) => void;
+  onDeleteTransfer: (transfer: Transfer) => void;
 }
 
 export function TransactionList({
   transactions,
+  transfers,
   accounts,
   categories,
   search,
@@ -44,6 +49,8 @@ export function TransactionList({
   onPageChange,
   onEdit,
   onDelete,
+  onEditTransfer,
+  onDeleteTransfer,
 }: TransactionListProps) {
   const [selectedTransaction, setSelectedTransaction] =
     useState<FinancialTransaction | null>(null);
@@ -257,6 +264,62 @@ export function TransactionList({
                 );
               })}
             </div>
+          )}
+          {transfers.length > 0 && (
+            <section className="mt-5 overflow-hidden rounded-xl border border-slate-100">
+              <div className="border-b border-slate-100 bg-slate-50/60 px-4 py-3">
+                <h3 className="text-sm font-semibold text-slate-800">
+                  Transfer
+                </h3>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {transfers.map((transfer) => (
+                  <article
+                    key={transfer.id}
+                    className="flex min-w-0 items-center justify-between gap-3 px-4 py-3.5"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-800">
+                        {accountName(transfer.fromAccountId)} →{" "}
+                        {accountName(transfer.toAccountId)}
+                      </p>
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        {transfer.transferDate}
+                        {transfer.note ? ` · ${transfer.note}` : ""}
+                        {transfer.transferFee > 0
+                          ? ` · Biaya ${currency.format(transfer.transferFee)}`
+                          : ""}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <p className="text-right text-sm font-bold tabular-nums text-slate-800">
+                        {currency.format(
+                          transfer.amount + transfer.transferFee,
+                        )}
+                      </p>
+                      <button
+                        type="button"
+                        aria-label="Edit transfer"
+                        title="Edit transfer"
+                        onClick={() => onEditTransfer(transfer)}
+                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                      >
+                        ✎
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Hapus transfer"
+                        title="Hapus transfer"
+                        onClick={() => onDeleteTransfer(transfer)}
+                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
           )}
         </div>
       )}

@@ -25,6 +25,7 @@ export interface Account extends ScopedRecord {
     | "other";
   openingBalance: number;
   openingBalanceDate: string;
+  monthlyAdminFee: number;
   investmentType?: "gold" | "deposit" | "crypto" | "stock";
   assetSymbol?: string;
   assetQuantity?: number;
@@ -55,6 +56,7 @@ export interface Transfer extends ScopedRecord {
   fromAccountId: string;
   toAccountId: string;
   amount: number;
+  transferFee: number;
   transferDate: string;
   note?: string;
 }

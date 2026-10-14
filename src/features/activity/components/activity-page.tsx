@@ -10,6 +10,7 @@ import { useActivity } from "@/features/activity/hooks/use-activity";
 export default function ActivityPage() {
   const {
     transactions,
+    transfers,
     accounts,
     categories,
     search,
@@ -23,11 +24,14 @@ export default function ActivityPage() {
     hasNextPage,
     deleting,
     setDeleting,
+    deletingTransfer,
+    setDeletingTransfer,
     deletingBusy,
     pageSize,
     onSearchChange,
     onPageChange,
     removeTransaction,
+    removeTransfer,
   } = useActivity();
 
   return (
@@ -57,6 +61,7 @@ export default function ActivityPage() {
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_2px_8px_rgb(15_23_42/0.03)] sm:p-6">
             <TransactionList
               transactions={transactions}
+              transfers={transfers}
               accounts={accounts}
               categories={categories}
               search={search}
@@ -74,6 +79,14 @@ export default function ActivityPage() {
                 )
               }
               onDelete={(transaction) => setDeleting(transaction)}
+              onEditTransfer={(transfer) =>
+                window.dispatchEvent(
+                  new CustomEvent("open-quick-add-transfer-edit", {
+                    detail: transfer,
+                  }),
+                )
+              }
+              onDeleteTransfer={(transfer) => setDeletingTransfer(transfer)}
             />
           </section>
         )}
@@ -106,6 +119,27 @@ export default function ActivityPage() {
           <p>
             Data transaksi akan dihapus permanen dari database. Tindakan ini
             tidak dapat dibatalkan dan tidak memengaruhi transaksi lainnya.
+          </p>
+        </ActionModal>
+      )}
+      {deletingTransfer && (
+        <ActionModal
+          title="Hapus transfer?"
+          description="Transfer ini akan dihapus permanen dari database."
+          submitLabel="Hapus transfer"
+          destructive
+          submitting={false}
+          onClose={() => setDeletingTransfer(null)}
+          onSubmit={(event) => {
+            event.preventDefault();
+            void removeTransfer(deletingTransfer).then((success) => {
+              if (success) setDeletingTransfer(null);
+            });
+          }}
+        >
+          <p>
+            Saldo akun sumber dan tujuan akan dikembalikan seperti sebelum
+            transfer.
           </p>
         </ActionModal>
       )}
