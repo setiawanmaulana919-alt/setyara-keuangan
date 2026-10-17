@@ -30,6 +30,7 @@ export default function Home() {
     greetingName,
     transactions,
     transfers,
+    loanActivities,
     accounts,
     categories,
     families,
@@ -145,6 +146,7 @@ export default function Home() {
             <RecentTransactions
               transactions={transactions}
               transfers={transfers}
+              loanActivities={loanActivities}
               accounts={accounts}
               categories={categories}
             />

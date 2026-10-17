@@ -13,3 +13,16 @@ export interface LoanRecord {
   notes?: string;
   repaymentCount: number;
 }
+
+export interface LoanActivity {
+  id: string;
+  kind: "issued" | "repayment";
+  loanId: string;
+  direction: LoanDirection;
+  counterpartyName: string;
+  amount: number;
+  accountId: string;
+  activityDate: string;
+  note?: string;
+  createdAt: string;
+}

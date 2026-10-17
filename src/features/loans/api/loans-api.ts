@@ -2,9 +2,79 @@
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-import type { LoanDirection, LoanRecord } from "@/features/loans/types";
+import type {
+  LoanActivity,
+  LoanDirection,
+  LoanRecord,
+} from "@/features/loans/types";
 
 export type { LoanDirection, LoanRecord } from "@/features/loans/types";
+
+export async function listLoanActivities(): Promise<LoanActivity[]> {
+  const client = getSupabaseBrowserClient();
+  const [
+    { data: loans, error: loansError },
+    { data: payments, error: paymentsError },
+  ] = await Promise.all([
+    client
+      .from("loans")
+      .select(
+        "id, direction, counterparty_name, principal_amount, account_id, issue_date, notes, created_at",
+      )
+      .order("issue_date", { ascending: false }),
+    client
+      .from("loan_payments")
+      .select(
+        "id, loan_id, account_id, amount, repayment_date, notes, created_at",
+      )
+      .order("repayment_date", { ascending: false }),
+  ]);
+  if (loansError) throw loansError;
+  if (paymentsError) throw paymentsError;
+  const loanById = new Map(
+    (loans ?? []).map((loan) => [
+      String(loan.id),
+      {
+        direction: loan.direction as LoanDirection,
+        counterpartyName: String(loan.counterparty_name),
+      },
+    ]),
+  );
+  const activities: LoanActivity[] = (loans ?? []).map((loan) => ({
+    id: String(loan.id),
+    kind: "issued",
+    loanId: String(loan.id),
+    direction: loan.direction as LoanDirection,
+    counterpartyName: String(loan.counterparty_name),
+    amount: safeInteger(loan.principal_amount, "jumlah pinjaman"),
+    accountId: String(loan.account_id),
+    activityDate: String(loan.issue_date),
+    ...(typeof loan.notes === "string" ? { note: loan.notes } : {}),
+    createdAt: String(loan.created_at),
+  }));
+  for (const payment of payments ?? []) {
+    const loan = loanById.get(String(payment.loan_id));
+    if (!loan) continue;
+    activities.push({
+      id: String(payment.id),
+      kind: "repayment",
+      loanId: String(payment.loan_id),
+      direction: loan.direction,
+      counterpartyName: loan.counterpartyName,
+      amount: safeInteger(payment.amount, "jumlah pembayaran"),
+      accountId: String(payment.account_id),
+      activityDate: String(payment.repayment_date),
+      ...(typeof payment.notes === "string" ? { note: payment.notes } : {}),
+      createdAt: String(payment.created_at),
+    });
+  }
+  return activities.sort(
+    (left, right) =>
+      right.activityDate.localeCompare(left.activityDate) ||
+      right.createdAt.localeCompare(left.createdAt) ||
+      right.id.localeCompare(left.id),
+  );
+}
 
 function safeInteger(value: unknown, field: string): number {
   const number = Number(value);

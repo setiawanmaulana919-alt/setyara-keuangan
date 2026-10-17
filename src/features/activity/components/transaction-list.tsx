@@ -7,10 +7,12 @@ import type {
   FinancialTransaction,
   Transfer,
 } from "@/types/data-model";
+import type { LoanActivity } from "@/features/loans/types";
 import { TransactionDateTime } from "@/features/transactions/components/transaction-date-time";
 import {
   TransactionDetailsDialog,
   TransferDetailsDialog,
+  LoanActivityDetailsDialog,
 } from "@/features/transactions/components/transaction-details";
 import { isGoalCategoryName } from "@/features/transactions/api/categories-api";
 
@@ -23,6 +25,7 @@ const currency = new Intl.NumberFormat("id-ID", {
 interface TransactionListProps {
   transactions: FinancialTransaction[];
   transfers: Transfer[];
+  loanActivities: LoanActivity[];
   accounts: Account[];
   categories: Category[];
   search: string;
@@ -41,6 +44,7 @@ interface TransactionListProps {
 export function TransactionList({
   transactions,
   transfers,
+  loanActivities,
   accounts,
   categories,
   search,
@@ -60,6 +64,8 @@ export function TransactionList({
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(
     null,
   );
+  const [selectedLoanActivity, setSelectedLoanActivity] =
+    useState<LoanActivity | null>(null);
   const sortedTransactions = [...transactions].sort(
     (left, right) =>
       right.transactionDate.localeCompare(left.transactionDate) ||
@@ -80,6 +86,13 @@ export function TransactionList({
       date: transfer.transferDate,
       createdAt: transfer.createdAt,
       id: transfer.id,
+    })),
+    ...loanActivities.map((activity) => ({
+      kind: "loan" as const,
+      value: activity,
+      date: activity.activityDate,
+      createdAt: activity.createdAt,
+      id: activity.id,
     })),
   ].sort(
     (left, right) =>
@@ -158,6 +171,63 @@ export function TransactionList({
           ) : (
             <div className="divide-y divide-slate-100 [touch-action:pan-y]">
               {activities.map((activity) => {
+                if (activity.kind === "loan") {
+                  const loan = activity.value;
+                  const isReceivable = loan.direction === "receivable";
+                  const isIssued = loan.kind === "issued";
+                  const increasesBalance = isIssued
+                    ? !isReceivable
+                    : isReceivable;
+                  return (
+                    <article
+                      key={loan.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Lihat detail aktivitas pinjaman"
+                      onClick={() => setSelectedLoanActivity(loan)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedLoanActivity(loan);
+                        }
+                      }}
+                      className="grid min-h-[72px] min-w-0 cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-3.5 transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-600 sm:gap-4 sm:px-4"
+                    >
+                      <span
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-semibold ${increasesBalance ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}
+                      >
+                        {increasesBalance ? "↗" : "↘"}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-800">
+                          {isIssued
+                            ? isReceivable
+                              ? "Piutang"
+                              : "Utang"
+                            : "Pembayaran pinjaman"}{" "}
+                          · {loan.counterpartyName}
+                        </p>
+                        <p className="mt-1 truncate text-[11px] leading-4 text-slate-500">
+                          {accountName(loan.accountId)}
+                          {loan.note ? ` · ${loan.note}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex min-w-0 flex-col items-end justify-center gap-1">
+                        <span
+                          className={`whitespace-nowrap text-sm font-bold tabular-nums ${increasesBalance ? "text-emerald-700" : "text-slate-800"}`}
+                        >
+                          {increasesBalance ? "+" : "-"}
+                          {currency.format(loan.amount)}
+                        </span>
+                        <TransactionDateTime
+                          transactionDate={loan.activityDate}
+                          recordedAt={loan.createdAt}
+                        />
+                      </div>
+                      <span className="h-7 w-7" aria-hidden="true" />
+                    </article>
+                  );
+                }
                 if (activity.kind === "transfer") {
                   const transfer = activity.value;
                   return (
@@ -467,6 +537,13 @@ export function TransactionList({
           fromAccountName={accountName(selectedTransfer.fromAccountId)}
           toAccountName={accountName(selectedTransfer.toAccountId)}
           onClose={() => setSelectedTransfer(null)}
+        />
+      )}
+      {selectedLoanActivity && (
+        <LoanActivityDetailsDialog
+          activity={selectedLoanActivity}
+          accountName={accountName(selectedLoanActivity.accountId)}
+          onClose={() => setSelectedLoanActivity(null)}
         />
       )}
     </>

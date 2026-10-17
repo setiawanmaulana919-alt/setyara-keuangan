@@ -30,6 +30,9 @@ export function useDashboard() {
     DashboardData["transactions"]
   >([]);
   const [transfers, setTransfers] = useState<DashboardData["transfers"]>([]);
+  const [loanActivities, setLoanActivities] = useState<
+    DashboardData["loanActivities"]
+  >([]);
   const [accounts, setAccounts] = useState<DashboardData["accounts"]>([]);
   const [categories, setCategories] = useState<DashboardData["categories"]>([]);
   const [families, setFamilies] = useState<Family[]>([]);
@@ -67,6 +70,7 @@ export function useDashboard() {
       setGoals(dashboard.goals);
       setTransactions(dashboard.transactions);
       setTransfers(dashboard.transfers);
+      setLoanActivities(dashboard.loanActivities);
       setAccounts(dashboard.accounts);
       setCategories(dashboard.categories);
       setFamilies(nextFamilies);
@@ -143,6 +147,7 @@ export function useDashboard() {
     greetingName,
     transactions,
     transfers,
+    loanActivities,
     accounts,
     categories,
     families,

@@ -11,6 +11,7 @@ export default function ActivityPage() {
   const {
     transactions,
     transfers,
+    loanActivities,
     accounts,
     categories,
     search,
@@ -62,6 +63,7 @@ export default function ActivityPage() {
             <TransactionList
               transactions={transactions}
               transfers={transfers}
+              loanActivities={loanActivities}
               accounts={accounts}
               categories={categories}
               search={search}

@@ -8,6 +8,7 @@ import {
 import { listAccounts } from "@/features/wallets/api/wallets-api";
 import { listCategories } from "@/features/transactions/api/categories-api";
 import { ensureFinanceDefaults } from "@/features/finance/api/initialization-api";
+import { listLoanActivities } from "@/features/loans/api/loans-api";
 import type { TransactionCursor } from "@/features/transactions/types";
 import type {
   Account,
@@ -15,6 +16,7 @@ import type {
   FinancialTransaction,
   Transfer,
 } from "@/types/data-model";
+import type { LoanActivity } from "@/features/loans/types";
 
 const ACTIVITY_PAGE_SIZE = 50;
 
@@ -25,6 +27,7 @@ function getMessage(reason: unknown, fallback: string): string {
 export function useActivity() {
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
+  const [loanActivities, setLoanActivities] = useState<LoanActivity[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
@@ -85,11 +88,13 @@ export function useActivity() {
             search,
           ),
           listTransfersPage(search),
+          listLoanActivities(),
         ])
-          .then(([result, transferResult]) => {
+          .then(([result, transferResult, loanResult]) => {
             if (!active) return;
             setTransactions(result.transactions);
             setTransfers(transferResult);
+            setLoanActivities(loanResult);
             setNextPageCursor(result.nextCursor);
             setHasNextPage(result.hasNextPage);
             setError("");
@@ -198,6 +203,7 @@ export function useActivity() {
   return {
     transactions,
     transfers,
+    loanActivities,
     accounts,
     categories,
     search,

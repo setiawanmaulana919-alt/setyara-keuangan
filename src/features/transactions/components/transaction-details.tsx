@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import type { FinancialTransaction, Transfer } from "@/types/data-model";
+import type { LoanActivity } from "@/features/loans/types";
 import { TransactionDateTime } from "@/features/transactions/components/transaction-date-time";
 
 const currency = new Intl.NumberFormat("id-ID", {
@@ -233,6 +234,111 @@ export function TransferDetailsDialog({
               />
             </dd>
           </div>
+        </dl>
+      </section>
+    </div>
+  );
+}
+
+export function LoanActivityDetailsDialog({
+  activity,
+  accountName,
+  onClose,
+}: {
+  activity: LoanActivity;
+  accountName: string;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+  const isReceivable = activity.direction === "receivable";
+  const isIssued = activity.kind === "issued";
+  const increasesBalance = isIssued ? !isReceivable : isReceivable;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-[2px] sm:items-center sm:p-6"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="loan-activity-details-title"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-[28px] border border-white/70 bg-white p-5 shadow-2xl sm:rounded-2xl sm:p-6"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Detail aktivitas
+            </p>
+            <h2
+              id="loan-activity-details-title"
+              className="mt-2 break-words text-xl font-bold tracking-tight text-slate-950"
+            >
+              {isIssued
+                ? isReceivable
+                  ? "Piutang dicatat"
+                  : "Utang dicatat"
+                : "Pembayaran pinjaman"}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Tutup detail aktivitas pinjaman"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-xl leading-none text-slate-500 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+          >
+            ×
+          </button>
+        </div>
+        <p
+          className={`mt-5 text-2xl font-bold tabular-nums ${
+            increasesBalance ? "text-emerald-700" : "text-slate-900"
+          }`}
+        >
+          {increasesBalance ? "+" : "-"}
+          {currency.format(activity.amount)}
+        </p>
+        <dl className="mt-5 divide-y divide-slate-100 rounded-xl border border-slate-100 px-4">
+          {[
+            [
+              "Jenis",
+              isIssued ? (isReceivable ? "Piutang" : "Utang") : "Pembayaran",
+            ],
+            ["Pihak terkait", activity.counterpartyName],
+            ["Akun", accountName],
+            ["Tanggal dan waktu", null],
+          ].map(([label, value]) => (
+            <div
+              key={label}
+              className="flex items-start justify-between gap-4 py-3"
+            >
+              <dt className="text-sm text-slate-500">{label}</dt>
+              <dd className="max-w-[65%] break-words text-right text-sm font-medium text-slate-800">
+                {value ?? (
+                  <TransactionDateTime
+                    transactionDate={activity.activityDate}
+                    recordedAt={activity.createdAt}
+                  />
+                )}
+              </dd>
+            </div>
+          ))}
+          {activity.note && (
+            <div className="flex items-start justify-between gap-4 py-3">
+              <dt className="text-sm text-slate-500">Catatan</dt>
+              <dd className="max-w-[65%] break-words text-right text-sm font-medium text-slate-800">
+                {activity.note}
+              </dd>
+            </div>
+          )}
         </dl>
       </section>
     </div>

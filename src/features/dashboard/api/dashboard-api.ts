@@ -20,6 +20,7 @@ import {
 import { ensureFinanceDefaults } from "@/features/finance/api/initialization-api";
 import { getTransactionPeriodTotals } from "@/features/transactions/api/transactions-api";
 import { listGoalProgress } from "@/features/goals/api/goals-api";
+import { listLoanActivities } from "@/features/loans/api/loans-api";
 
 export async function getAccountBalances(): Promise<AccountBalance[]> {
   const client = getSupabaseBrowserClient();
@@ -56,6 +57,7 @@ export async function getDashboardData(
     initialBalanceResult,
     goals,
     transactionPeriodTotals,
+    loanActivities,
   ] = await Promise.all([
     client
       .from("wallets")
@@ -86,6 +88,7 @@ export async function getDashboardData(
     client.rpc("get_account_balances"),
     listGoalProgress(),
     getTransactionPeriodTotals(periodFrom, periodTo, true),
+    listLoanActivities(),
   ]);
   if (recentTransactionRows.error) throw recentTransactionRows.error;
   if (recentTransferRows.error) throw recentTransferRows.error;
@@ -178,6 +181,7 @@ export async function getDashboardData(
     goals,
     transactions,
     transfers,
+    loanActivities,
     accounts,
     categories,
   };
