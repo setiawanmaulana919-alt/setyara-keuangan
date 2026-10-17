@@ -124,6 +124,9 @@ export default function WalletsPage() {
         !["investment", "receivable"].includes(account.accountType),
     )
     .map(({ account }) => account);
+  const unpaidAdminFeeWallets = balances.filter(
+    ({ account, balance }) => account.monthlyAdminFee > 0 && balance === 0,
+  );
 
   async function submitWallet(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -479,6 +482,29 @@ export default function WalletsPage() {
             </p>
           </div>
         </div>
+        {unpaidAdminFeeWallets.length > 0 && (
+          <div
+            role="status"
+            className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          >
+            <p className="font-semibold">Biaya admin belum dipotong</p>
+            <p className="mt-1">
+              Saldo{" "}
+              {unpaidAdminFeeWallets.length === 1 ? "dompet" : "dompet-dompet"}{" "}
+              {unpaidAdminFeeWallets.map(({ account }, index) => (
+                <span key={account.id}>
+                  {index > 0 &&
+                    (index === unpaidAdminFeeWallets.length - 1
+                      ? " dan "
+                      : ", ")}
+                  <strong>{account.name}</strong>
+                </span>
+              ))}{" "}
+              masih Rp0, jadi biaya admin bulanan tidak dipotong. Isi saldo agar
+              biaya admin dapat dicatat.
+            </p>
+          </div>
+        )}
 
         <section className="mt-6 rounded-3xl bg-blue-600 p-6 text-white shadow-[0_10px_28px_rgb(37_99_235/0.2)] sm:p-7">
           <div className="flex flex-wrap items-start justify-between gap-4">
