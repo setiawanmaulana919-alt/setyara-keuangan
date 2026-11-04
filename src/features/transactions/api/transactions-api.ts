@@ -240,13 +240,17 @@ export async function createTransfer(input: TransferInput): Promise<Transfer> {
       duplicate.from_account_id === input.fromAccountId &&
       duplicate.to_account_id === input.toAccountId &&
       Number(duplicate.amount) === input.amount &&
+      Number(duplicate.transfer_fee ?? 0) === input.transferFee &&
       duplicate.transfer_date === input.transferDate &&
       (duplicate.description ?? null) === (input.note ?? null)
     ) {
       return transferFromRow(duplicate);
     }
   }
-  await assertAccountCanSpend(input.fromAccountId, input.amount);
+  await assertAccountCanSpend(
+    input.fromAccountId,
+    input.amount + input.transferFee,
+  );
 
   const transferRow = {
     id: input.requestId ?? id(),
@@ -281,6 +285,7 @@ export async function createTransfer(input: TransferInput): Promise<Transfer> {
       duplicate.from_account_id === input.fromAccountId &&
       duplicate.to_account_id === input.toAccountId &&
       Number(duplicate.amount) === input.amount &&
+      Number(duplicate.transfer_fee ?? 0) === input.transferFee &&
       duplicate.transfer_date === input.transferDate &&
       (duplicate.description ?? null) === (input.note ?? null)
     ) {
