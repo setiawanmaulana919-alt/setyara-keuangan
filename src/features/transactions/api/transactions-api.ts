@@ -453,6 +453,22 @@ export async function listTransactionsPage(
   };
 }
 
+export async function listAllTransactionsPage(
+  search = "",
+): Promise<TransactionPage> {
+  const transactions: FinancialTransaction[] = [];
+  let cursor: TransactionCursor | null = null;
+
+  while (true) {
+    const result = await listTransactionsPage(cursor, 100, search);
+    transactions.push(...result.transactions);
+    if (!result.hasNextPage || !result.nextCursor) break;
+    cursor = result.nextCursor;
+  }
+
+  return { transactions, nextCursor: null, hasNextPage: false };
+}
+
 export async function getTransactionPeriodTotals(
   from: string,
   to: string,

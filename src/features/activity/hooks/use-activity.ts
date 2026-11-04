@@ -3,13 +3,12 @@ import {
   deleteTransfer,
   deleteTransaction,
   listTransfersPage,
-  listTransactionsPage,
+  listAllTransactionsPage,
 } from "@/features/transactions/api/transactions-api";
 import { listAccounts } from "@/features/wallets/api/wallets-api";
 import { listCategories } from "@/features/transactions/api/categories-api";
 import { ensureFinanceDefaults } from "@/features/finance/api/initialization-api";
 import { listLoanActivities } from "@/features/loans/api/loans-api";
-import type { TransactionCursor } from "@/features/transactions/types";
 import type {
   Account,
   Category,
@@ -18,7 +17,7 @@ import type {
 } from "@/types/data-model";
 import type { LoanActivity } from "@/features/loans/types";
 
-const ACTIVITY_PAGE_SIZE = 50;
+const ACTIVITY_PAGE_SIZE = 10;
 
 function getMessage(reason: unknown, fallback: string): string {
   return reason instanceof Error ? reason.message : fallback;
@@ -37,12 +36,6 @@ export function useActivity() {
   const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [activityReady, setActivityReady] = useState(false);
   const [page, setPage] = useState(0);
-  const [pageCursors, setPageCursors] = useState<
-    Array<TransactionCursor | null>
-  >([null]);
-  const [nextPageCursor, setNextPageCursor] =
-    useState<TransactionCursor | null>(null);
-  const [hasNextPage, setHasNextPage] = useState(false);
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [deleting, setDeleting] = useState<FinancialTransaction | null>(null);
   const [deletingTransfer, setDeletingTransfer] = useState<Transfer | null>(
@@ -82,11 +75,7 @@ export function useActivity() {
       () => {
         setTransactionsLoading(true);
         void Promise.all([
-          listTransactionsPage(
-            pageCursors[page] ?? null,
-            ACTIVITY_PAGE_SIZE,
-            search,
-          ),
+          listAllTransactionsPage(search),
           listTransfersPage(search),
           listLoanActivities(),
         ])
@@ -95,8 +84,9 @@ export function useActivity() {
             setTransactions(result.transactions);
             setTransfers(transferResult);
             setLoanActivities(loanResult);
-            setNextPageCursor(result.nextCursor);
-            setHasNextPage(result.hasNextPage);
+            setPage((current) =>
+              current > 0 && result.transactions.length === 0 ? 0 : current,
+            );
             setError("");
           })
           .catch((reason: unknown) => {
@@ -114,15 +104,13 @@ export function useActivity() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [activityReady, page, pageCursors, refreshVersion, search]);
+  }, [activityReady, refreshVersion, search]);
 
   useEffect(() => {
     if (!activityReady) return;
     const handleCloudUpdate = () => {
       setRefreshVersion((version) => version + 1);
       setPage(0);
-      setPageCursors([null]);
-      setNextPageCursor(null);
       void Promise.all([listAccounts(), listCategories()])
         .then(([nextAccounts, nextCategories]) => {
           setAccounts(nextAccounts);
@@ -140,8 +128,6 @@ export function useActivity() {
   const onSearchChange = useCallback((value: string) => {
     setSearch(value);
     setPage(0);
-    setPageCursors([null]);
-    setNextPageCursor(null);
   }, []);
 
   const onPageChange = useCallback(
@@ -150,14 +136,9 @@ export function useActivity() {
         setPage(nextPage);
         return;
       }
-      if (!nextPageCursor) return;
-      setPageCursors((cursors) => [
-        ...cursors.slice(0, page + 1),
-        nextPageCursor,
-      ]);
       setPage(nextPage);
     },
-    [nextPageCursor, page],
+    [page],
   );
 
   const removeTransaction = useCallback(
@@ -169,8 +150,6 @@ export function useActivity() {
         await deleteTransaction(transaction.id);
         setMessage("Transaksi dihapus permanen.");
         setPage(0);
-        setPageCursors([null]);
-        setNextPageCursor(null);
         setRefreshVersion((version) => version + 1);
         return true;
       } catch (reason) {
@@ -214,7 +193,7 @@ export function useActivity() {
     loading,
     transactionsLoading,
     page,
-    hasNextPage,
+    hasNextPage: false,
     deleting,
     setDeleting,
     deletingTransfer,

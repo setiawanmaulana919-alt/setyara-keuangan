@@ -50,7 +50,6 @@ export function TransactionList({
   search,
   page,
   pageSize,
-  hasNextPage,
   loading,
   onSearchChange,
   onPageChange,
@@ -66,12 +65,18 @@ export function TransactionList({
   );
   const [selectedLoanActivity, setSelectedLoanActivity] =
     useState<LoanActivity | null>(null);
+  const categoryName = (id: string) =>
+    categories.find((category) => category.id === id)?.name ||
+    "Kategori tidak dikenal";
+  const accountName = (id: string) =>
+    accounts.find((account) => account.id === id)?.name || "Akun tidak dikenal";
   const sortedTransactions = [...transactions].sort(
     (left, right) =>
       right.transactionDate.localeCompare(left.transactionDate) ||
       right.createdAt.localeCompare(left.createdAt) ||
       right.id.localeCompare(left.id),
   );
+  const normalizedSearch = search.trim().toLocaleLowerCase("id-ID");
   const activities = [
     ...sortedTransactions.map((transaction) => ({
       kind: "transaction" as const,
@@ -94,18 +99,51 @@ export function TransactionList({
       createdAt: activity.createdAt,
       id: activity.id,
     })),
-  ].sort(
+  ]
+    .filter((activity) => {
+      if (!normalizedSearch) return true;
+      if (activity.kind === "transaction") {
+        const transaction = activity.value as FinancialTransaction;
+        return [
+          transaction.note,
+          categoryName(transaction.categoryId),
+          accountName(transaction.accountId),
+          String(transaction.amount),
+        ].some((value) =>
+          value?.toLocaleLowerCase("id-ID").includes(normalizedSearch),
+        );
+      }
+      if (activity.kind === "transfer") {
+        const transfer = activity.value as Transfer;
+        return [
+          transfer.note,
+          accountName(transfer.fromAccountId),
+          accountName(transfer.toAccountId),
+          String(transfer.amount),
+        ].some((value) =>
+          value?.toLocaleLowerCase("id-ID").includes(normalizedSearch),
+        );
+      }
+      const loan = activity.value as LoanActivity;
+      return [
+        loan.counterpartyName,
+        loan.direction === "receivable" ? "piutang" : "utang",
+        accountName(loan.accountId),
+        String(loan.amount),
+      ].some((value) =>
+        value.toLocaleLowerCase("id-ID").includes(normalizedSearch),
+      );
+    })
+    .sort(
     (left, right) =>
       right.date.localeCompare(left.date) ||
       right.createdAt.localeCompare(left.createdAt) ||
       right.id.localeCompare(left.id),
-  );
+    );
+  const pageStart = page * pageSize;
+  const paginatedActivities = activities.slice(pageStart, pageStart + pageSize);
+  const combinedHasNextPage = pageStart + pageSize < activities.length;
 
-  const categoryName = (id: string) =>
-    categories.find((category) => category.id === id)?.name ||
-    "Kategori tidak dikenal";
-  const accountName = (id: string) =>
-    accounts.find((account) => account.id === id)?.name || "Akun tidak dikenal";
   const selectedTitle = selectedTransaction
     ? selectedTransaction.note || categoryName(selectedTransaction.categoryId)
     : "";
@@ -170,7 +208,7 @@ export function TransactionList({
             </div>
           ) : (
             <div className="divide-y divide-slate-100 [touch-action:pan-y]">
-              {activities.map((activity) => {
+              {paginatedActivities.map((activity) => {
                 if (activity.kind === "loan") {
                   const loan = activity.value;
                   const isReceivable = loan.direction === "receivable";
@@ -503,7 +541,7 @@ export function TransactionList({
           <button
             type="button"
             onClick={() => onPageChange(page + 1)}
-            disabled={loading || !hasNextPage}
+            disabled={loading || !combinedHasNextPage}
             aria-label="Halaman berikutnya"
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-600"
           >
