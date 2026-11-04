@@ -84,9 +84,6 @@ export function useActivity() {
             setTransactions(result.transactions);
             setTransfers(transferResult);
             setLoanActivities(loanResult);
-            setPage((current) =>
-              current > 0 && result.transactions.length === 0 ? 0 : current,
-            );
             setError("");
           })
           .catch((reason: unknown) => {

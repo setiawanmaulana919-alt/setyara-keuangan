@@ -378,22 +378,31 @@ export async function deleteTransfer(transferId: string): Promise<void> {
 }
 
 export async function listTransfersPage(search = ""): Promise<Transfer[]> {
-  let query = getSupabaseBrowserClient()
-    .from("wallet_transfers")
-    .select(TRANSFER_COLUMNS)
-    .is("deleted_at", null)
-    .order("transfer_date", { ascending: false })
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(50);
+  const client = getSupabaseBrowserClient();
+  const transfers: Transfer[] = [];
+  const batchSize = 1000;
   const normalizedSearch = search.trim().slice(0, 100);
-  if (normalizedSearch) {
-    const pattern = normalizedSearch.replace(/[\\%_]/g, "\\$&");
-    query = query.ilike("description", `%${pattern}%`);
+
+  while (true) {
+    let query = client
+      .from("wallet_transfers")
+      .select(TRANSFER_COLUMNS)
+      .is("deleted_at", null)
+      .order("transfer_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(transfers.length, transfers.length + batchSize - 1);
+    if (normalizedSearch) {
+      const pattern = normalizedSearch.replace(/[\\%_]/g, "\\$&");
+      query = query.ilike("description", `%${pattern}%`);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    const rows = data ?? [];
+    transfers.push(...rows.map((row) => transferFromRow(row)));
+    if (rows.length < batchSize) break;
   }
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data ?? []).map((row) => transferFromRow(row));
+  return transfers;
 }
 
 export async function listTransactionsPage(

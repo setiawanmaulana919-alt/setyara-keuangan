@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type {
   Account,
   Category,
@@ -143,6 +143,11 @@ export function TransactionList({
   const pageStart = page * pageSize;
   const paginatedActivities = activities.slice(pageStart, pageStart + pageSize);
   const combinedHasNextPage = pageStart + pageSize < activities.length;
+  const maxPage = Math.max(0, Math.ceil(activities.length / pageSize) - 1);
+
+  useEffect(() => {
+    if (page > maxPage) onPageChange(maxPage);
+  }, [maxPage, onPageChange, page]);
 
   const selectedTitle = selectedTransaction
     ? selectedTransaction.note || categoryName(selectedTransaction.categoryId)
