@@ -22,6 +22,33 @@ const currency = new Intl.NumberFormat("id-ID", {
   maximumFractionDigits: 0,
 });
 
+type ActivityKindFilter = "all" | "transaction" | "transfer" | "loan";
+type TransactionKindFilter = "all" | "income" | "expense";
+type LoanKindFilter = "all" | "issued" | "repayment";
+type LoanDirectionFilter = "all" | "receivable" | "payable";
+
+interface ActivityFilters {
+  dateFrom: string;
+  dateTo: string;
+  accountId: string;
+  activityKind: ActivityKindFilter;
+  transactionKind: TransactionKindFilter;
+  categoryId: string;
+  loanKind: LoanKindFilter;
+  loanDirection: LoanDirectionFilter;
+}
+
+const EMPTY_FILTERS: ActivityFilters = {
+  dateFrom: "",
+  dateTo: "",
+  accountId: "",
+  activityKind: "all",
+  transactionKind: "all",
+  categoryId: "",
+  loanKind: "all",
+  loanDirection: "all",
+};
+
 interface TransactionListProps {
   transactions: FinancialTransaction[];
   transfers: Transfer[];
@@ -65,6 +92,10 @@ export function TransactionList({
   );
   const [selectedLoanActivity, setSelectedLoanActivity] =
     useState<LoanActivity | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filters, setFilters] = useState<ActivityFilters>(EMPTY_FILTERS);
+  const [draftFilters, setDraftFilters] =
+    useState<ActivityFilters>(EMPTY_FILTERS);
   const categoryName = (id: string) =>
     categories.find((category) => category.id === id)?.name ||
     "Kategori tidak dikenal";
@@ -100,6 +131,77 @@ export function TransactionList({
       id: activity.id,
     })),
   ]
+    .filter((activity) => {
+      if (filters.dateFrom && activity.date < filters.dateFrom) return false;
+      if (filters.dateTo && activity.date > filters.dateTo) return false;
+      if (
+        filters.activityKind !== "all" &&
+        activity.kind !== filters.activityKind
+      ) {
+        return false;
+      }
+
+      if (activity.kind === "transaction") {
+        const transaction = activity.value as FinancialTransaction;
+        if (
+          filters.accountId &&
+          transaction.accountId !== filters.accountId
+        ) {
+          return false;
+        }
+        if (
+          filters.transactionKind !== "all" &&
+          transaction.transactionType !== filters.transactionKind
+        ) {
+          return false;
+        }
+        if (
+          filters.categoryId &&
+          transaction.categoryId !== filters.categoryId
+        ) {
+          return false;
+        }
+      } else if (activity.kind === "transfer") {
+        const transfer = activity.value as Transfer;
+        if (
+          filters.accountId &&
+          transfer.fromAccountId !== filters.accountId &&
+          transfer.toAccountId !== filters.accountId
+        ) {
+          return false;
+        }
+        if (
+          filters.transactionKind !== "all" ||
+          filters.categoryId
+        ) {
+          return false;
+        }
+      } else {
+        const loan = activity.value as LoanActivity;
+        if (filters.accountId && loan.accountId !== filters.accountId) {
+          return false;
+        }
+        if (
+          filters.loanKind !== "all" &&
+          loan.kind !== filters.loanKind
+        ) {
+          return false;
+        }
+        if (
+          filters.loanDirection !== "all" &&
+          loan.direction !== filters.loanDirection
+        ) {
+          return false;
+        }
+        if (
+          filters.transactionKind !== "all" ||
+          filters.categoryId
+        ) {
+          return false;
+        }
+      }
+      return true;
+    })
     .filter((activity) => {
       if (!normalizedSearch) return true;
       if (activity.kind === "transaction") {
@@ -144,6 +246,9 @@ export function TransactionList({
   const paginatedActivities = activities.slice(pageStart, pageStart + pageSize);
   const combinedHasNextPage = pageStart + pageSize < activities.length;
   const maxPage = Math.max(0, Math.ceil(activities.length / pageSize) - 1);
+  const activeFilterCount = Object.entries(filters).filter(
+    ([, value]) => value !== "" && value !== "all",
+  ).length;
 
   useEffect(() => {
     if (page > maxPage) onPageChange(maxPage);
@@ -152,6 +257,16 @@ export function TransactionList({
   const selectedTitle = selectedTransaction
     ? selectedTransaction.note || categoryName(selectedTransaction.categoryId)
     : "";
+
+  const openFilters = () => {
+    setDraftFilters(filters);
+    setFilterOpen(true);
+  };
+
+  const updateDraftFilter = <Key extends keyof ActivityFilters>(
+    key: Key,
+    value: ActivityFilters[Key],
+  ) => setDraftFilters((current) => ({ ...current, [key]: value }));
 
   return (
     <>
@@ -164,7 +279,8 @@ export function TransactionList({
             Lihat dan kelola seluruh transaksi keuanganmu.
           </p>
         </div>
-        <label className="block w-full sm:max-w-sm">
+        <div className="flex w-full items-end gap-2 sm:max-w-md">
+        <label className="block min-w-0 flex-1">
           <span className="mb-1.5 block text-xs font-semibold text-slate-600">
             Cari transaksi
           </span>
@@ -189,6 +305,22 @@ export function TransactionList({
             />
           </span>
         </label>
+          <button
+            type="button"
+            onClick={openFilters}
+            aria-label="Filter aktivitas"
+            className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+              <path d="M4 5h16M7 12h10M10 19h4" />
+            </svg>
+            {activeFilterCount > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
       {loading ? (
         <p className="py-10 text-center text-sm text-slate-500">
@@ -588,6 +720,133 @@ export function TransactionList({
           accountName={accountName(selectedLoanActivity.accountId)}
           onClose={() => setSelectedLoanActivity(null)}
         />
+      )}
+      {filterOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-[2px] sm:items-center sm:p-6"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setFilterOpen(false);
+          }}
+        >
+          <form
+            role="dialog"
+            aria-modal="true"
+            aria-label="Filter aktivitas"
+            className="max-h-[94vh] w-full max-w-xl overflow-y-auto rounded-t-[30px] border border-white/70 bg-[#f8fafc] p-5 shadow-2xl sm:rounded-[30px] sm:p-7"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                    <path d="M4 5h16M7 12h10M10 19h4" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold tracking-tight text-slate-950">Filter aktivitas</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500">Pilih satu atau beberapa batasan untuk menyaring seluruh aktivitas.</p>
+              </div>
+              <button type="button" onClick={() => setFilterOpen(false)} aria-label="Tutup" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-2xl leading-none text-slate-500 shadow-sm hover:bg-slate-100">×</button>
+            </div>
+            <div className="mt-6 grid gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 sm:grid-cols-2 sm:p-5">
+              <label className="text-sm font-semibold text-slate-700">
+                Dari tanggal
+                <input type="date" value={draftFilters.dateFrom} onChange={(event) => updateDraftFilter("dateFrom", event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-normal text-slate-800" />
+              </label>
+              <label className="text-sm font-semibold text-slate-700">
+                Sampai tanggal
+                <input type="date" min={draftFilters.dateFrom || undefined} value={draftFilters.dateTo} onChange={(event) => updateDraftFilter("dateTo", event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-normal text-slate-800" />
+              </label>
+              <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
+                Dompet
+                <select value={draftFilters.accountId} onChange={(event) => updateDraftFilter("accountId", event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-normal text-slate-800">
+                  <option value="">Semua dompet</option>
+                  {accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}
+                </select>
+              </label>
+              <label className="text-sm font-semibold text-slate-700">
+                Jenis aktivitas
+                <select value={draftFilters.activityKind} onChange={(event) => updateDraftFilter("activityKind", event.target.value as ActivityKindFilter)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-normal text-slate-800">
+                  <option value="all">Semua aktivitas</option>
+                  <option value="transaction">Transaksi</option>
+                  <option value="transfer">Transfer</option>
+                  <option value="loan">Utang & piutang</option>
+                </select>
+              </label>
+              <label className="text-sm font-semibold text-slate-700">
+                Jenis transaksi
+                <select disabled={draftFilters.activityKind !== "all" && draftFilters.activityKind !== "transaction"} value={draftFilters.transactionKind} onChange={(event) => updateDraftFilter("transactionKind", event.target.value as TransactionKindFilter)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-normal text-slate-800 disabled:bg-slate-100 disabled:text-slate-400">
+                  <option value="all">Semua</option>
+                  <option value="income">Pemasukan</option>
+                  <option value="expense">Pengeluaran</option>
+                </select>
+              </label>
+              <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
+                Kategori
+                <select disabled={draftFilters.activityKind !== "all" && draftFilters.activityKind !== "transaction"} value={draftFilters.categoryId} onChange={(event) => updateDraftFilter("categoryId", event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-normal text-slate-800 disabled:bg-slate-100 disabled:text-slate-400">
+                  <option value="">Semua kategori</option>
+                  {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                </select>
+              </label>
+              <label className="text-sm font-semibold text-slate-700">
+                Operasi utang/piutang
+                <select disabled={draftFilters.activityKind !== "all" && draftFilters.activityKind !== "loan"} value={draftFilters.loanKind} onChange={(event) => updateDraftFilter("loanKind", event.target.value as LoanKindFilter)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-normal text-slate-800 disabled:bg-slate-100 disabled:text-slate-400">
+                  <option value="all">Semua</option>
+                  <option value="issued">Pencatatan</option>
+                  <option value="repayment">Pembayaran</option>
+                </select>
+              </label>
+              <label className="text-sm font-semibold text-slate-700">
+                Arah utang/piutang
+                <select disabled={draftFilters.activityKind !== "all" && draftFilters.activityKind !== "loan"} value={draftFilters.loanDirection} onChange={(event) => updateDraftFilter("loanDirection", event.target.value as LoanDirectionFilter)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-normal text-slate-800 disabled:bg-slate-100 disabled:text-slate-400">
+                  <option value="all">Semua</option>
+                  <option value="receivable">Piutang</option>
+                  <option value="payable">Utang</option>
+                </select>
+              </label>
+            </div>
+            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+              <button type="button" onClick={() => { setDraftFilters(EMPTY_FILTERS); setFilters(EMPTY_FILTERS); onPageChange(0); }} className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset filter</button>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setFilterOpen(false)} className="min-h-11 flex-1 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 sm:flex-none">Batal</button>
+                <button
+                  type="button"
+                  disabled={Boolean(draftFilters.dateFrom && draftFilters.dateTo && draftFilters.dateTo < draftFilters.dateFrom)}
+                  onClick={() => {
+                    const normalizedFilters = {
+                      ...draftFilters,
+                      transactionKind:
+                        draftFilters.activityKind === "transaction" ||
+                        draftFilters.activityKind === "all"
+                          ? draftFilters.transactionKind
+                          : "all" as TransactionKindFilter,
+                      categoryId:
+                        draftFilters.activityKind === "transaction" ||
+                        draftFilters.activityKind === "all"
+                          ? draftFilters.categoryId
+                          : "",
+                      loanKind:
+                        draftFilters.activityKind === "loan" ||
+                        draftFilters.activityKind === "all"
+                          ? draftFilters.loanKind
+                          : "all" as LoanKindFilter,
+                      loanDirection:
+                        draftFilters.activityKind === "loan" ||
+                        draftFilters.activityKind === "all"
+                          ? draftFilters.loanDirection
+                          : "all" as LoanDirectionFilter,
+                    };
+                    setFilters(normalizedFilters);
+                    onPageChange(0);
+                    setFilterOpen(false);
+                  }}
+                  className="min-h-11 flex-1 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm disabled:opacity-50 sm:flex-none"
+                >
+                  Terapkan
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
       )}
     </>
   );
