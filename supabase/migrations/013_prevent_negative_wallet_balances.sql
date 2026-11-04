@@ -235,8 +235,8 @@ begin
           end;
         end if;
         select coalesce(sum(case
-          when old.direction = 'receivable' then -repayment.amount
-          else repayment.amount
+          when old.direction = 'receivable' then repayment.amount
+          else -repayment.amount
         end), 0)
         into repayment_change
         from public.loan_payments repayment
