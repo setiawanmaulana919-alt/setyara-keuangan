@@ -77,6 +77,7 @@ export function DateField({
     parseCalendarValue(value, mode),
   );
   const inputRef = useRef<HTMLInputElement>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -117,6 +118,28 @@ export function DateField({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [mode, open]);
+
+  useLayoutEffect(() => {
+    if (!open || !position) return;
+    const trigger = inputRef.current?.getBoundingClientRect();
+    const calendar = calendarRef.current?.getBoundingClientRect();
+    if (!trigger || !calendar) return;
+
+    const spaceBelow = Math.max(0, window.innerHeight - trigger.bottom - 16);
+    const spaceAbove = Math.max(0, trigger.top - 16);
+    const placeBelow =
+      spaceBelow >= Math.min(mode === "month" ? 330 : 390, 240) ||
+      spaceBelow >= spaceAbove;
+    const top = placeBelow
+      ? trigger.bottom + 6
+      : trigger.top - calendar.height - 6;
+    const nextTop = Math.max(8, top);
+    if (Math.abs(position.top - nextTop) > 1) {
+      setPosition((current) =>
+        current ? { ...current, top: nextTop } : current,
+      );
+    }
+  }, [mode, open, position]);
 
   function openPicker() {
     setVisibleMonth(parseCalendarValue(value, mode));
@@ -197,7 +220,7 @@ export function DateField({
               openPicker();
             }
           }}
-          className="field mt-0 w-full min-w-0 cursor-pointer pr-10"
+          className="field date-time-control w-full min-w-0 cursor-pointer pr-10"
         />
         <svg
           aria-hidden="true"
@@ -227,6 +250,7 @@ export function DateField({
               className="fixed inset-0 z-[60] cursor-default bg-transparent"
             />
             <div
+              ref={calendarRef}
               id={calendarId}
               role="dialog"
               aria-label={ariaLabel ?? "Pilih tanggal"}
@@ -236,14 +260,24 @@ export function DateField({
                 width: position.width,
                 maxHeight: position.maxHeight,
               }}
-              className="fixed z-[61] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_16px_40px_rgb(15_23_42/0.18)]"
+              className={`date-picker-calendar fixed z-[61] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-[0_16px_40px_rgb(15_23_42/0.18)] ${
+                position.maxHeight < 320
+                  ? "date-picker-calendar-compact"
+                  : "p-4"
+              }`}
             >
-              <div className="mb-3 flex items-center justify-between gap-2">
+              <div
+                className={`flex items-center justify-between gap-2 ${
+                  position.maxHeight < 320 ? "mb-2" : "mb-3"
+                }`}
+              >
                 <button
                   type="button"
                   onClick={() => changeMonth(-1)}
                   aria-label="Bulan sebelumnya"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-lg text-slate-500 hover:bg-slate-100"
+                  className={`flex items-center justify-center rounded-lg text-lg text-slate-500 hover:bg-slate-100 ${
+                    position.maxHeight < 320 ? "h-8 w-8" : "h-9 w-9"
+                  }`}
                 >
                   ‹
                 </button>
@@ -254,7 +288,9 @@ export function DateField({
                   type="button"
                   onClick={() => changeMonth(1)}
                   aria-label="Bulan berikutnya"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-lg text-slate-500 hover:bg-slate-100"
+                  className={`flex items-center justify-center rounded-lg text-lg text-slate-500 hover:bg-slate-100 ${
+                    position.maxHeight < 320 ? "h-8 w-8" : "h-9 w-9"
+                  }`}
                 >
                   ›
                 </button>
@@ -294,17 +330,27 @@ export function DateField({
                 </div>
               ) : (
                 <>
-                  <div className="mb-1 grid grid-cols-7">
+                  <div
+                    className={`grid grid-cols-7 ${
+                      position.maxHeight < 320 ? "mb-0" : "mb-1"
+                    }`}
+                  >
                     {weekdays.map((weekday) => (
                       <span
                         key={weekday}
-                        className="py-2 text-center text-[10px] font-semibold uppercase text-slate-400"
+                        className={`text-center text-[10px] font-semibold uppercase text-slate-400 ${
+                          position.maxHeight < 320 ? "py-0" : "py-2"
+                        }`}
                       >
                         {weekday}
                       </span>
                     ))}
                   </div>
-                  <div className="grid grid-cols-7 gap-y-1">
+                  <div
+                    className={`grid grid-cols-7 ${
+                      position.maxHeight < 320 ? "gap-y-0" : "gap-y-1"
+                    }`}
+                  >
                     {days.map((day) => {
                       const isSelected = value === day.value;
                       const isToday = dateToString(new Date()) === day.value;
@@ -318,7 +364,9 @@ export function DateField({
                             onChange(day.value);
                             setOpen(false);
                           }}
-                          className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full text-xs transition disabled:cursor-not-allowed disabled:opacity-25 ${
+                          className={`mx-auto flex items-center justify-center rounded-full text-xs transition disabled:cursor-not-allowed disabled:opacity-25 ${
+                            position.maxHeight < 320 ? "h-7 w-7" : "h-9 w-9"
+                          } ${
                             isSelected
                               ? "bg-blue-600 font-semibold text-white"
                               : isToday

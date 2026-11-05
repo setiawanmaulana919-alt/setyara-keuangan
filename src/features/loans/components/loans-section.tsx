@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ActionModal } from "@/components/ui/action-modal";
 import { Snackbar } from "@/components/ui/snackbar";
 import { DateField } from "@/components/ui/date-field";
+import { TimeField } from "@/components/ui/time-field";
 import { DropdownField } from "@/components/ui/dropdown-field";
 import { formatNumberInput, parseNumberInput } from "@/lib/format-number";
 import { getRequestId, renewRequestId } from "@/lib/request-id";
@@ -33,7 +34,9 @@ const currentTime = () => {
 const recordedAt = (date: string, time: string) => {
   if (!time) return undefined;
   const timestamp = new Date(`${date}T${time}:00`);
-  return Number.isNaN(timestamp.getTime()) ? undefined : timestamp.toISOString();
+  return Number.isNaN(timestamp.getTime())
+    ? undefined
+    : timestamp.toISOString();
 };
 
 export function LoansSection({
@@ -238,9 +241,7 @@ export function LoansSection({
   }
 
   function openRepayment(loan: LoanRecord) {
-    setRepaymentRequestId(
-      renewRequestId("keuangan.loan-repayment-request-id"),
-    );
+    setRepaymentRequestId(renewRequestId("keuangan.loan-repayment-request-id"));
     setRepaying(loan);
     setRepaymentDate(today());
     setRepaymentTime(currentTime());
@@ -719,14 +720,11 @@ export function LoansSection({
               />
             </label>
             <label className="label">
-              Jam{" "}
-              <span className="font-normal text-slate-400">(opsional)</span>
-              <input
-                type="time"
+              Jam <span className="font-normal text-slate-400">(opsional)</span>
+              <TimeField
                 value={issueTime}
-                onChange={(event) => setIssueTime(event.target.value)}
+                onChange={setIssueTime}
                 aria-label="Jam pencairan"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
               />
             </label>
             <label className="label sm:col-span-2">
@@ -764,71 +762,69 @@ export function LoansSection({
           onSubmit={(event) => void submitRepayment(event)}
         >
           <div className="grid gap-4 sm:grid-cols-2">
-          <label className="label sm:col-span-2">
-            Jumlah pembayaran
-            <div className="money-field mt-1">
-              <span className="money-field-prefix">Rp</span>
-              <input
-                required
-                inputMode="numeric"
-                value={repaymentAmount}
-                onChange={(event) =>
-                  setRepaymentAmount(formatNumberInput(event.target.value))
-                }
-                className="text-base font-semibold tabular-nums"
-                placeholder="0"
-                aria-label="Jumlah pembayaran dalam rupiah"
-              />
-            </div>
-          </label>
-          <div className="grid gap-4 sm:col-span-2 sm:grid-cols-2">
             <label className="label sm:col-span-2">
-              Dompet
-              <DropdownField
-                required
-                value={repaymentAccountId}
-                onChange={setRepaymentAccountId}
-              >
-                <option value="">Pilih dompet</option>
-                {accounts.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name}
-                  </option>
-                ))}
-              </DropdownField>
+              Jumlah pembayaran
+              <div className="money-field mt-1">
+                <span className="money-field-prefix">Rp</span>
+                <input
+                  required
+                  inputMode="numeric"
+                  value={repaymentAmount}
+                  onChange={(event) =>
+                    setRepaymentAmount(formatNumberInput(event.target.value))
+                  }
+                  className="text-base font-semibold tabular-nums"
+                  placeholder="0"
+                  aria-label="Jumlah pembayaran dalam rupiah"
+                />
+              </div>
             </label>
-            <label className="label">
-              Tanggal pembayaran
-              <DateField
-                required
-                value={repaymentDate}
-                onChange={setRepaymentDate}
-                aria-label="Tanggal pembayaran"
-              />
-            </label>
-            <label className="label">
-              Jam{" "}
+            <div className="grid gap-4 sm:col-span-2 sm:grid-cols-2">
+              <label className="label sm:col-span-2">
+                Dompet
+                <DropdownField
+                  required
+                  value={repaymentAccountId}
+                  onChange={setRepaymentAccountId}
+                >
+                  <option value="">Pilih dompet</option>
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name}
+                    </option>
+                  ))}
+                </DropdownField>
+              </label>
+              <label className="label">
+                Tanggal pembayaran
+                <DateField
+                  required
+                  value={repaymentDate}
+                  onChange={setRepaymentDate}
+                  aria-label="Tanggal pembayaran"
+                />
+              </label>
+              <label className="label">
+                Jam{" "}
+                <span className="font-normal text-slate-400">(opsional)</span>
+                <TimeField
+                  value={repaymentTime}
+                  onChange={setRepaymentTime}
+                  aria-label="Jam pembayaran"
+                />
+              </label>
+            </div>
+            <label className="label sm:col-span-2">
+              Catatan{" "}
               <span className="font-normal text-slate-400">(opsional)</span>
-              <input
-                type="time"
-                value={repaymentTime}
-                onChange={(event) => setRepaymentTime(event.target.value)}
-                aria-label="Jam pembayaran"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+              <textarea
+                maxLength={500}
+                value={repaymentNotes}
+                onChange={(event) => setRepaymentNotes(event.target.value)}
+                className="field min-h-24 resize-y"
+                placeholder="Tambahkan detail pembayaran (opsional)"
               />
             </label>
-          </div>
-          <label className="label sm:col-span-2">
-            Catatan{" "}
-            <span className="font-normal text-slate-400">(opsional)</span>
-            <textarea
-              maxLength={500}
-              value={repaymentNotes}
-              onChange={(event) => setRepaymentNotes(event.target.value)}
-              className="field min-h-24 resize-y"
-              placeholder="Tambahkan detail pembayaran (opsional)"
-            />
-          </label>
           </div>
         </ActionModal>
       )}

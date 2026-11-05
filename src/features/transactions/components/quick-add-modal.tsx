@@ -27,6 +27,7 @@ import type {
 import { formatNumberInput, parseNumberInput } from "@/lib/format-number";
 import { getRequestId, renewRequestId } from "@/lib/request-id";
 import { DateField } from "@/components/ui/date-field";
+import { TimeField } from "@/components/ui/time-field";
 import { DropdownField } from "@/components/ui/dropdown-field";
 import { Snackbar } from "@/components/ui/snackbar";
 
@@ -68,7 +69,9 @@ function toLocalDateTimeInput(value?: string): string {
 function toRecordedAt(value: string, date: string): string | undefined {
   if (!value) return undefined;
   const timestamp = new Date(`${date}T${value}:00`);
-  return Number.isNaN(timestamp.getTime()) ? undefined : timestamp.toISOString();
+  return Number.isNaN(timestamp.getTime())
+    ? undefined
+    : timestamp.toISOString();
 }
 
 export function QuickAddModal({
@@ -109,7 +112,9 @@ export function QuickAddModal({
       const timer = window.setTimeout(() => {
         setDate(new Date().toISOString().slice(0, 10));
         const now = new Date();
-        setTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
+        setTime(
+          `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+        );
       }, 0);
       return () => window.clearTimeout(timer);
     }
@@ -133,7 +138,9 @@ export function QuickAddModal({
         setAccountId(editingTransaction.accountId);
         setCategoryId(editingTransaction.categoryId);
         setDate(editingTransaction.transactionDate);
-        setTime(toLocalDateTimeInput(editingTransaction.createdAt).slice(11, 16));
+        setTime(
+          toLocalDateTimeInput(editingTransaction.createdAt).slice(11, 16),
+        );
         setNote(editingTransaction.note ?? "");
       }
     }, 0);
@@ -540,14 +547,11 @@ export function QuickAddModal({
               />
             </label>
             <label className="label">
-              Jam{" "}
-              <span className="font-normal text-slate-400">(opsional)</span>
-              <input
-                type="time"
+              Jam <span className="font-normal text-slate-400">(opsional)</span>
+              <TimeField
                 value={time}
-                onChange={(event) => setTime(event.target.value)}
+                onChange={setTime}
                 aria-label="Jam transaksi"
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
               />
             </label>
             <label className="label sm:col-span-2">

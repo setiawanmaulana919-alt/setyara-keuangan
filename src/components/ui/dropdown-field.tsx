@@ -36,6 +36,19 @@ interface PopupPosition {
   maxHeight: number;
 }
 
+function getOptionText(node: ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") {
+    return String(node);
+  }
+  if (Array.isArray(node)) {
+    return node.map(getOptionText).join(" ");
+  }
+  if (isValidElement<{ children?: ReactNode }>(node)) {
+    return getOptionText(node.props.children);
+  }
+  return "";
+}
+
 function collectDropdownOptions(nodes: ReactNode): Array<{
   value: string;
   label: ReactNode;
@@ -74,9 +87,9 @@ export function DropdownField({
   const options = useMemo(() => collectDropdownOptions(children), [children]);
   const selected = options.find((option) => option.value === value);
   const filteredOptions = options.filter((option) =>
-    typeof option.label === "string"
-      ? option.label.toLocaleLowerCase().includes(search.toLocaleLowerCase())
-      : true,
+    getOptionText(option.label)
+      .toLocaleLowerCase()
+      .includes(search.toLocaleLowerCase()),
   );
 
   useLayoutEffect(() => {
@@ -103,7 +116,14 @@ export function DropdownField({
         preferredHeight,
         placeBelow ? spaceBelow : spaceAbove,
       );
-      const top = placeBelow ? rect.bottom + 6 : rect.top - maxHeight - 6;
+      const contentHeight =
+        56 +
+        Math.max(
+          filteredOptions.length > 0 ? filteredOptions.length * 40 : 48,
+          0,
+        );
+      const popupHeight = Math.min(maxHeight, contentHeight);
+      const top = placeBelow ? rect.bottom + 6 : rect.top - popupHeight - 6;
       setPosition({ top: Math.max(8, top), left, width, maxHeight });
     };
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -122,7 +142,7 @@ export function DropdownField({
       window.removeEventListener("scroll", updatePosition, true);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [open]);
+  }, [filteredOptions.length, open]);
 
   function toggle() {
     if (disabled) return;
@@ -220,25 +240,22 @@ export function DropdownField({
               }}
               className="fixed z-[61] overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-[0_16px_40px_rgb(15_23_42/0.18)]"
             >
-              {options.length > 8 && (
-                <input
-                  type="search"
-                  autoFocus
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Cari pilihan..."
-                  aria-label="Cari pilihan"
-                  className="mb-1.5 h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-50"
-                />
-              )}
+              <input
+                type="search"
+                autoFocus
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Cari pilihan..."
+                aria-label="Cari pilihan"
+                className="mb-1.5 h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-50"
+              />
               <div
                 id={listboxId}
                 role="listbox"
                 aria-label={ariaLabel}
                 className="overflow-y-auto"
                 style={{
-                  maxHeight:
-                    position.maxHeight - (options.length > 8 ? 54 : 12),
+                  maxHeight: position.maxHeight - 56,
                 }}
               >
                 {filteredOptions.map((option) => (
