@@ -58,6 +58,19 @@ const typeOptions: Array<{
   },
 ];
 
+function toLocalDateTimeInput(value?: string): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}T${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+function toRecordedAt(value: string, date: string): string | undefined {
+  if (!value) return undefined;
+  const timestamp = new Date(`${date}T${value}:00`);
+  return Number.isNaN(timestamp.getTime()) ? undefined : timestamp.toISOString();
+}
+
 export function QuickAddModal({
   open,
   onClose,
@@ -81,6 +94,7 @@ export function QuickAddModal({
   const [fromAccountId, setFromAccountId] = useState("");
   const [toAccountId, setToAccountId] = useState("");
   const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -94,6 +108,8 @@ export function QuickAddModal({
     if (open && !date) {
       const timer = window.setTimeout(() => {
         setDate(new Date().toISOString().slice(0, 10));
+        const now = new Date();
+        setTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
       }, 0);
       return () => window.clearTimeout(timer);
     }
@@ -109,6 +125,7 @@ export function QuickAddModal({
         setFromAccountId(editingTransfer.fromAccountId);
         setToAccountId(editingTransfer.toAccountId);
         setDate(editingTransfer.transferDate);
+        setTime(toLocalDateTimeInput(editingTransfer.createdAt).slice(11, 16));
         setNote(editingTransfer.note ?? "");
       } else if (editingTransaction) {
         setSelectedType(editingTransaction.transactionType);
@@ -116,6 +133,7 @@ export function QuickAddModal({
         setAccountId(editingTransaction.accountId);
         setCategoryId(editingTransaction.categoryId);
         setDate(editingTransaction.transactionDate);
+        setTime(toLocalDateTimeInput(editingTransaction.createdAt).slice(11, 16));
         setNote(editingTransaction.note ?? "");
       }
     }, 0);
@@ -261,6 +279,7 @@ export function QuickAddModal({
     setAmount("");
     setTransferFee("");
     setNote("");
+    setTime("");
     setSelectedType("expense");
     setDate("");
     onClose();
@@ -278,6 +297,7 @@ export function QuickAddModal({
           amount: parseNumberInput(amount),
           transferFee: parseNumberInput(transferFee || "0"),
           transferDate: date,
+          recordedAt: toRecordedAt(time, date),
           note: note.trim() || undefined,
           requestId,
         };
@@ -294,6 +314,7 @@ export function QuickAddModal({
             transactionType: selectedType,
             amount: parseNumberInput(amount),
             transactionDate: date,
+            recordedAt: toRecordedAt(time, date),
             note: note.trim() || undefined,
           },
           editingTransaction?.id,
@@ -307,6 +328,7 @@ export function QuickAddModal({
       setNote("");
       setSelectedType("expense");
       setDate("");
+      setTime("");
       setRequestId(renewRequestId("keuangan.quick-add-request-id"));
       onClose();
     } catch (reason) {
@@ -518,6 +540,17 @@ export function QuickAddModal({
               />
             </label>
             <label className="label">
+              Jam{" "}
+              <span className="font-normal text-slate-400">(opsional)</span>
+              <input
+                type="time"
+                value={time}
+                onChange={(event) => setTime(event.target.value)}
+                aria-label="Jam transaksi"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+              />
+            </label>
+            <label className="label sm:col-span-2">
               Catatan{" "}
               <span className="font-normal text-slate-400">(opsional)</span>
               <input

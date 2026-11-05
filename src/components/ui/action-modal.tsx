@@ -33,6 +33,7 @@ export function ActionModal({
     >
       <form
         onSubmit={onSubmit}
+        noValidate
         role="dialog"
         aria-modal="true"
         aria-labelledby="action-modal-title"

@@ -10,6 +10,7 @@ export interface TransactionInput {
   transactionType: TransactionType;
   amount: number;
   transactionDate: string;
+  recordedAt?: string;
   note?: string;
   scopeType?: ScopeType;
 }
@@ -20,6 +21,7 @@ export interface TransferInput {
   amount: number;
   transferFee: number;
   transferDate: string;
+  recordedAt?: string;
   note?: string;
   scopeType?: ScopeType;
   requestId?: string;

@@ -89,7 +89,8 @@ export function formatAccountSpendError(
   fallback = "Data gagal disimpan.",
 ): string {
   const message = getOperationErrorMessage(reason);
-  if (!message.toLocaleLowerCase("id-ID").includes("saldo akun")) {
+  const normalizedMessage = message.trim();
+  if (!normalizedMessage.toLocaleLowerCase("id-ID").includes("saldo akun")) {
     return message || fallback;
   }
 

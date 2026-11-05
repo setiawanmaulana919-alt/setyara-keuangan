@@ -24,7 +24,7 @@ export function Snackbar({
   return (
     <div
       role={tone === "error" ? "alert" : "status"}
-      className={`fixed inset-x-4 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-[60] mx-auto flex max-w-md items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-white shadow-xl sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:right-auto sm:mx-0 sm:-translate-x-1/2 lg:absolute ${
+      className={`fixed inset-x-4 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[100] mx-auto flex max-w-md items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-white shadow-xl sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:right-auto sm:top-auto sm:mx-0 sm:-translate-x-1/2 ${
         tone === "error" ? "bg-rose-600" : "bg-emerald-600"
       }`}
     >

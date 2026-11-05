@@ -135,6 +135,7 @@ export async function saveTransaction(
     amount: input.amount,
     transaction_date: input.transactionDate,
     description: input.note ?? null,
+    ...(input.recordedAt ? { created_at: input.recordedAt } : {}),
   };
   if (existingId) {
     const { data, error } = await client
@@ -262,6 +263,7 @@ export async function createTransfer(input: TransferInput): Promise<Transfer> {
     transfer_fee: input.transferFee,
     transfer_date: input.transferDate,
     description: input.note ?? null,
+    ...(input.recordedAt ? { created_at: input.recordedAt } : {}),
     created_by: userId,
   };
   const { data, error } = await client
@@ -359,6 +361,7 @@ export async function updateTransfer(
       transfer_fee: input.transferFee,
       transfer_date: input.transferDate,
       description: input.note ?? null,
+      ...(input.recordedAt ? { created_at: input.recordedAt } : {}),
     })
     .eq("id", transferId)
     .is("deleted_at", null)

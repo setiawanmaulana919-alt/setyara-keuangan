@@ -26,6 +26,15 @@ const currency = new Intl.NumberFormat("id-ID", {
 });
 
 const today = () => new Date().toISOString().slice(0, 10);
+const currentTime = () => {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+};
+const recordedAt = (date: string, time: string) => {
+  if (!time) return undefined;
+  const timestamp = new Date(`${date}T${time}:00`);
+  return Number.isNaN(timestamp.getTime()) ? undefined : timestamp.toISOString();
+};
 
 export function LoansSection({
   accounts,
@@ -50,12 +59,14 @@ export function LoansSection({
   const [principalAmount, setPrincipalAmount] = useState("");
   const [accountId, setAccountId] = useState("");
   const [issueDate, setIssueDate] = useState(today);
+  const [issueTime, setIssueTime] = useState(currentTime);
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
   const [repaying, setRepaying] = useState<LoanRecord | null>(null);
   const [repaymentAmount, setRepaymentAmount] = useState("");
   const [repaymentAccountId, setRepaymentAccountId] = useState("");
   const [repaymentDate, setRepaymentDate] = useState(today);
+  const [repaymentTime, setRepaymentTime] = useState(currentTime);
   const [repaymentNotes, setRepaymentNotes] = useState("");
   const [loanRequestId, setLoanRequestId] = useState(() =>
     getRequestId("keuangan.loan-create-request-id"),
@@ -101,12 +112,26 @@ export function LoansSection({
     setPrincipalAmount("");
     setAccountId("");
     setIssueDate(today());
+    setIssueTime(currentTime());
     setDueDate("");
     setNotes("");
   }
 
   async function submitLoan(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!counterpartyName.trim()) {
+      setError("Nama orang wajib diisi.");
+      return;
+    }
+    const amount = parseNumberInput(principalAmount);
+    if (!Number.isSafeInteger(amount) || amount < 1) {
+      setError("Jumlah pokok harus berupa angka yang lebih besar dari nol.");
+      return;
+    }
+    if (!accountId) {
+      setError("Pilih dompet untuk pencairan pinjaman.");
+      return;
+    }
     setSaving(true);
     setError("");
     setMessage("");
@@ -117,6 +142,7 @@ export function LoansSection({
         principalAmount: parseNumberInput(principalAmount),
         accountId,
         issueDate,
+        recordedAt: recordedAt(issueDate, issueTime),
         dueDate: dueDate || undefined,
         notes,
       };
@@ -145,6 +171,9 @@ export function LoansSection({
         );
       }
     } catch (reason) {
+      if (!editingLoan) {
+        setLoanRequestId(renewRequestId("keuangan.loan-create-request-id"));
+      }
       setError(
         formatAccountSpendError(
           reason instanceof Error
@@ -170,6 +199,7 @@ export function LoansSection({
         accountId: repaymentAccountId,
         amount: parseNumberInput(repaymentAmount),
         repaymentDate,
+        recordedAt: recordedAt(repaymentDate, repaymentTime),
         notes: repaymentNotes,
       });
       setRepaymentRequestId(
@@ -179,6 +209,7 @@ export function LoansSection({
       setRepaymentAmount("");
       setRepaymentAccountId("");
       setRepaymentDate(today());
+      setRepaymentTime(currentTime());
       setRepaymentNotes("");
       setMessage("Pembayaran dicatat dan saldo dompet diperbarui.");
       try {
@@ -191,6 +222,9 @@ export function LoansSection({
         );
       }
     } catch (reason) {
+      setRepaymentRequestId(
+        renewRequestId("keuangan.loan-repayment-request-id"),
+      );
       setError(
         formatAccountSpendError(
           reason instanceof Error
@@ -204,7 +238,12 @@ export function LoansSection({
   }
 
   function openRepayment(loan: LoanRecord) {
+    setRepaymentRequestId(
+      renewRequestId("keuangan.loan-repayment-request-id"),
+    );
     setRepaying(loan);
+    setRepaymentDate(today());
+    setRepaymentTime(currentTime());
   }
 
   function openEditLoan(loan: LoanRecord) {
@@ -218,6 +257,7 @@ export function LoansSection({
         : "",
     );
     setIssueDate(loan.issueDate);
+    setIssueTime(currentTime());
     setDueDate(loan.dueDate ?? "");
     setNotes(loan.notes ?? "");
     setFormOpen(true);
@@ -536,7 +576,12 @@ export function LoansSection({
           </div>
           <button
             type="button"
-            onClick={() => setFormOpen(true)}
+            onClick={() => {
+              setLoanRequestId(
+                renewRequestId("keuangan.loan-create-request-id"),
+              );
+              setFormOpen(true);
+            }}
             disabled={accounts.length === 0}
             className="min-h-11 w-full shrink-0 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
@@ -653,7 +698,7 @@ export function LoansSection({
                 />
               </div>
             </label>
-            <label className="label">
+            <label className="label sm:col-span-2">
               Dompet
               <DropdownField required value={accountId} onChange={setAccountId}>
                 <option value="">Pilih dompet</option>
@@ -673,6 +718,17 @@ export function LoansSection({
                 aria-label="Tanggal pencairan"
               />
             </label>
+            <label className="label">
+              Jam{" "}
+              <span className="font-normal text-slate-400">(opsional)</span>
+              <input
+                type="time"
+                value={issueTime}
+                onChange={(event) => setIssueTime(event.target.value)}
+                aria-label="Jam pencairan"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+              />
+            </label>
             <label className="label sm:col-span-2">
               Jatuh tempo{" "}
               <span className="font-normal text-slate-400">(opsional)</span>
@@ -684,7 +740,7 @@ export function LoansSection({
               />
             </label>
           </div>
-          <label className="label">
+          <label className="label sm:col-span-2">
             Catatan{" "}
             <span className="font-normal text-slate-400">(opsional)</span>
             <textarea
@@ -707,7 +763,8 @@ export function LoansSection({
           onClose={() => setRepaying(null)}
           onSubmit={(event) => void submitRepayment(event)}
         >
-          <label className="label">
+          <div className="grid gap-4 sm:grid-cols-2">
+          <label className="label sm:col-span-2">
             Jumlah pembayaran
             <div className="money-field mt-1">
               <span className="money-field-prefix">Rp</span>
@@ -724,8 +781,8 @@ export function LoansSection({
               />
             </div>
           </label>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="label">
+          <div className="grid gap-4 sm:col-span-2 sm:grid-cols-2">
+            <label className="label sm:col-span-2">
               Dompet
               <DropdownField
                 required
@@ -749,8 +806,19 @@ export function LoansSection({
                 aria-label="Tanggal pembayaran"
               />
             </label>
+            <label className="label">
+              Jam{" "}
+              <span className="font-normal text-slate-400">(opsional)</span>
+              <input
+                type="time"
+                value={repaymentTime}
+                onChange={(event) => setRepaymentTime(event.target.value)}
+                aria-label="Jam pembayaran"
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-50"
+              />
+            </label>
           </div>
-          <label className="label">
+          <label className="label sm:col-span-2">
             Catatan{" "}
             <span className="font-normal text-slate-400">(opsional)</span>
             <textarea
@@ -761,6 +829,7 @@ export function LoansSection({
               placeholder="Tambahkan detail pembayaran (opsional)"
             />
           </label>
+          </div>
         </ActionModal>
       )}
 

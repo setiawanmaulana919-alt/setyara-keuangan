@@ -386,7 +386,6 @@ export default function ProfilePage() {
                 required
                 minLength={3}
                 maxLength={30}
-                pattern="[A-Za-z0-9_]+"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 className="field"

@@ -26,11 +26,23 @@ type ActivityKindFilter = "all" | "transaction" | "transfer" | "loan";
 type TransactionKindFilter = "all" | "income" | "expense";
 type LoanKindFilter = "all" | "issued" | "repayment";
 type LoanDirectionFilter = "all" | "receivable" | "payable";
+type AccountTypeFilter =
+  | "all"
+  | "cash"
+  | "bank"
+  | "eWallet"
+  | "savings"
+  | "investment"
+  | "receivable"
+  | "other";
 
 interface ActivityFilters {
   dateFrom: string;
   dateTo: string;
+  timeFrom: string;
+  timeTo: string;
   accountId: string;
+  accountType: AccountTypeFilter;
   activityKind: ActivityKindFilter;
   transactionKind: TransactionKindFilter;
   categoryId: string;
@@ -41,7 +53,10 @@ interface ActivityFilters {
 const EMPTY_FILTERS: ActivityFilters = {
   dateFrom: "",
   dateTo: "",
+  timeFrom: "",
+  timeTo: "",
   accountId: "",
+  accountType: "all",
   activityKind: "all",
   transactionKind: "all",
   categoryId: "",
@@ -101,6 +116,18 @@ export function TransactionList({
     "Kategori tidak dikenal";
   const accountName = (id: string) =>
     accounts.find((account) => account.id === id)?.name || "Akun tidak dikenal";
+  const accountMatchesType = (accountId: string) => {
+    if (filters.accountType === "all") return true;
+    return accounts.find((account) => account.id === accountId)?.accountType ===
+      filters.accountType;
+  };
+  const activityMatchesTime = (createdAt: string) => {
+    if (!filters.timeFrom && !filters.timeTo) return true;
+    const recordedTime = new Date(createdAt).toTimeString().slice(0, 5);
+    if (filters.timeFrom && recordedTime < filters.timeFrom) return false;
+    if (filters.timeTo && recordedTime > filters.timeTo) return false;
+    return true;
+  };
   const sortedTransactions = [...transactions].sort(
     (left, right) =>
       right.transactionDate.localeCompare(left.transactionDate) ||
@@ -134,6 +161,7 @@ export function TransactionList({
     .filter((activity) => {
       if (filters.dateFrom && activity.date < filters.dateFrom) return false;
       if (filters.dateTo && activity.date > filters.dateTo) return false;
+      if (!activityMatchesTime(activity.createdAt)) return false;
       if (
         filters.activityKind !== "all" &&
         activity.kind !== filters.activityKind
@@ -143,6 +171,7 @@ export function TransactionList({
 
       if (activity.kind === "transaction") {
         const transaction = activity.value as FinancialTransaction;
+        if (!accountMatchesType(transaction.accountId)) return false;
         if (
           filters.accountId &&
           transaction.accountId !== filters.accountId
@@ -164,6 +193,11 @@ export function TransactionList({
       } else if (activity.kind === "transfer") {
         const transfer = activity.value as Transfer;
         if (
+          filters.accountType !== "all" &&
+          !accountMatchesType(transfer.fromAccountId) &&
+          !accountMatchesType(transfer.toAccountId)
+        ) return false;
+        if (
           filters.accountId &&
           transfer.fromAccountId !== filters.accountId &&
           transfer.toAccountId !== filters.accountId
@@ -178,6 +212,7 @@ export function TransactionList({
         }
       } else {
         const loan = activity.value as LoanActivity;
+        if (!accountMatchesType(loan.accountId)) return false;
         if (filters.accountId && loan.accountId !== filters.accountId) {
           return false;
         }
@@ -642,8 +677,8 @@ export function TransactionList({
       <div className="mt-4 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
         <p aria-live="polite" className="min-w-0 text-xs text-slate-500">
           {activities.length === 0
-            ? "Tidak ada transaksi"
-            : `${page * pageSize + 1}–${page * pageSize + activities.length} aktivitas`}
+            ? "Tidak ada aktivitas"
+            : `${pageStart + 1}–${Math.min(pageStart + pageSize, activities.length)} dari ${activities.length} aktivitas`}
         </p>
         <nav
           aria-label="Navigasi halaman aktivitas"
@@ -756,6 +791,27 @@ export function TransactionList({
                 Sampai tanggal
                 <input type="date" min={draftFilters.dateFrom || undefined} value={draftFilters.dateTo} onChange={(event) => updateDraftFilter("dateTo", event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-normal text-slate-800" />
               </label>
+              <label className="text-sm font-semibold text-slate-700">
+                Dari jam
+                <input type="time" value={draftFilters.timeFrom} onChange={(event) => updateDraftFilter("timeFrom", event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-normal text-slate-800" />
+              </label>
+              <label className="text-sm font-semibold text-slate-700">
+                Sampai jam
+                <input type="time" min={draftFilters.timeFrom || undefined} value={draftFilters.timeTo} onChange={(event) => updateDraftFilter("timeTo", event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-normal text-slate-800" />
+              </label>
+              <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
+                Jenis dompet
+                <select value={draftFilters.accountType} onChange={(event) => updateDraftFilter("accountType", event.target.value as AccountTypeFilter)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-normal text-slate-800">
+                  <option value="all">Semua jenis dompet</option>
+                  <option value="cash">Tunai</option>
+                  <option value="bank">Bank</option>
+                  <option value="eWallet">Dompet digital</option>
+                  <option value="savings">Tabungan</option>
+                  <option value="investment">Investasi</option>
+                  <option value="receivable">Piutang</option>
+                  <option value="other">Lainnya</option>
+                </select>
+              </label>
               <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
                 Dompet
                 <select value={draftFilters.accountId} onChange={(event) => updateDraftFilter("accountId", event.target.value)} className="mt-1.5 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm font-normal text-slate-800">
@@ -810,7 +866,10 @@ export function TransactionList({
                 <button type="button" onClick={() => setFilterOpen(false)} className="min-h-11 flex-1 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 sm:flex-none">Batal</button>
                 <button
                   type="button"
-                  disabled={Boolean(draftFilters.dateFrom && draftFilters.dateTo && draftFilters.dateTo < draftFilters.dateFrom)}
+                  disabled={
+                    Boolean(draftFilters.dateFrom && draftFilters.dateTo && draftFilters.dateTo < draftFilters.dateFrom) ||
+                    Boolean(draftFilters.timeFrom && draftFilters.timeTo && draftFilters.timeTo < draftFilters.timeFrom)
+                  }
                   onClick={() => {
                     const normalizedFilters = {
                       ...draftFilters,

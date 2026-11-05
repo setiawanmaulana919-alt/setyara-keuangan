@@ -138,6 +138,7 @@ export async function createLoanRecord(input: {
   issueDate: string;
   dueDate?: string;
   notes?: string;
+  recordedAt?: string;
 }): Promise<void> {
   if (
     !Number.isSafeInteger(input.principalAmount) ||
@@ -145,7 +146,8 @@ export async function createLoanRecord(input: {
   ) {
     throw new Error("Jumlah harus berupa bilangan bulat lebih besar dari nol.");
   }
-  const { error } = await getSupabaseBrowserClient().rpc(
+  const client = getSupabaseBrowserClient();
+  const { data: loanId, error } = await client.rpc(
     "create_loan_record_idempotent",
     {
       target_request_id: input.requestId,
@@ -159,6 +161,16 @@ export async function createLoanRecord(input: {
     },
   );
   if (error) throw error;
+  if (input.recordedAt && typeof loanId === "string") {
+    const { error: timestampError } = await client.rpc(
+      "set_loan_recorded_at",
+      {
+        target_loan_id: loanId,
+        target_recorded_at: input.recordedAt,
+      },
+    );
+    if (timestampError) throw timestampError;
+  }
 }
 
 export async function updateLoanRecord(input: {
@@ -170,6 +182,7 @@ export async function updateLoanRecord(input: {
   issueDate: string;
   dueDate?: string;
   notes?: string;
+  recordedAt?: string;
 }): Promise<void> {
   if (
     !Number.isSafeInteger(input.principalAmount) ||
@@ -177,7 +190,8 @@ export async function updateLoanRecord(input: {
   ) {
     throw new Error("Jumlah harus berupa bilangan bulat lebih besar dari nol.");
   }
-  const { error } = await getSupabaseBrowserClient().rpc("update_loan_record", {
+  const client = getSupabaseBrowserClient();
+  const { error } = await client.rpc("update_loan_record", {
     target_loan_id: input.loanId,
     target_direction: input.direction,
     target_counterparty_name: input.counterpartyName.trim(),
@@ -188,6 +202,16 @@ export async function updateLoanRecord(input: {
     target_notes: input.notes?.trim() || null,
   });
   if (error) throw error;
+  if (input.recordedAt) {
+    const { error: timestampError } = await client.rpc(
+      "set_loan_recorded_at",
+      {
+        target_loan_id: input.loanId,
+        target_recorded_at: input.recordedAt,
+      },
+    );
+    if (timestampError) throw timestampError;
+  }
 }
 
 export async function deleteLoanRecord(loanId: string): Promise<void> {
@@ -204,13 +228,15 @@ export async function recordLoanRepayment(input: {
   amount: number;
   repaymentDate: string;
   notes?: string;
+  recordedAt?: string;
 }): Promise<void> {
   if (!Number.isSafeInteger(input.amount) || input.amount < 1) {
     throw new Error(
       "Jumlah pembayaran harus berupa bilangan bulat lebih besar dari nol.",
     );
   }
-  const { error } = await getSupabaseBrowserClient().rpc(
+  const client = getSupabaseBrowserClient();
+  const { data: paymentId, error } = await client.rpc(
     "record_loan_repayment_idempotent",
     {
       target_request_id: input.requestId,
@@ -222,4 +248,14 @@ export async function recordLoanRepayment(input: {
     },
   );
   if (error) throw error;
+  if (input.recordedAt && typeof paymentId === "string") {
+    const { error: timestampError } = await client.rpc(
+      "set_loan_payment_recorded_at",
+      {
+        target_payment_id: paymentId,
+        target_recorded_at: input.recordedAt,
+      },
+    );
+    if (timestampError) throw timestampError;
+  }
 }

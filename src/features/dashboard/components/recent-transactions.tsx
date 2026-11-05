@@ -93,7 +93,7 @@ export function RecentTransactions({
             Aktivitas
           </p>
           <h2 className="mt-1 text-lg font-bold text-slate-950">
-            Transaksi terbaru
+            Aktivitas terbaru
           </h2>
         </div>
         <a
