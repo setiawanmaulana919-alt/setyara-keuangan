@@ -366,7 +366,7 @@ export function QuickAddModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="quick-add-title"
-        className="max-h-[94vh] w-full overflow-y-auto rounded-t-[26px] border border-white/70 bg-[#f8fafc] p-4 shadow-2xl sm:max-w-xl sm:rounded-[30px] sm:p-7"
+        className="max-h-[94dvh] w-full overflow-y-auto rounded-t-[26px] border border-white/70 bg-[#f8fafc] p-4 shadow-2xl sm:max-w-xl sm:rounded-[30px] sm:p-7"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -570,19 +570,21 @@ export function QuickAddModal({
             </label>
           </div>
 
-          <button
-            type="submit"
-            disabled={
-              submitting ||
-              !accounts.length ||
-              (selectedType !== "transfer" && !categoryId)
-            }
-            className="mt-5 min-h-11 w-full rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:mt-6 sm:min-h-12 sm:rounded-2xl"
-          >
-            {submitting
-              ? "Menyimpan..."
-              : `${editingTransaction || editingTransfer ? "Simpan perubahan" : `Simpan ${selectedType === "transfer" ? "transfer" : "transaksi"}`}`}
-          </button>
+          <div className="sticky bottom-0 z-10 -mx-3.5 mt-4 border-t border-slate-100 bg-white/95 px-3.5 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] pt-3 backdrop-blur sm:static sm:mx-0 sm:mt-6 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+            <button
+              type="submit"
+              disabled={
+                submitting ||
+                !accounts.length ||
+                (selectedType !== "transfer" && !categoryId)
+              }
+              className="min-h-11 w-full rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-12 sm:rounded-2xl"
+            >
+              {submitting
+                ? "Menyimpan..."
+                : `${editingTransaction || editingTransfer ? "Simpan perubahan" : `Simpan ${selectedType === "transfer" ? "transfer" : "transaksi"}`}`}
+            </button>
+          </div>
         </form>
       </div>
       {error && (

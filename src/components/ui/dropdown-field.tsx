@@ -84,6 +84,7 @@ export function DropdownField({
   const [position, setPosition] = useState<PopupPosition | null>(null);
   const listboxId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const optionRefs = useRef(new Map<string, HTMLButtonElement>());
   const options = useMemo(() => collectDropdownOptions(children), [children]);
   const selected = options.find((option) => option.value === value);
   const filteredOptions = options.filter((option) =>
@@ -91,6 +92,13 @@ export function DropdownField({
       .toLocaleLowerCase()
       .includes(search.toLocaleLowerCase()),
   );
+  const enabledOptions = filteredOptions.filter((option) => !option.disabled);
+
+  function focusOption(option: (typeof enabledOptions)[number] | undefined) {
+    if (option) {
+      optionRefs.current.get(option.value)?.focus({ preventScroll: true });
+    }
+  }
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -130,7 +138,7 @@ export function DropdownField({
       if (event.key === "Escape") {
         setOpen(false);
         setSearch("");
-        triggerRef.current?.focus();
+        triggerRef.current?.focus({ preventScroll: true });
       }
     };
     updatePosition();
@@ -191,7 +199,14 @@ export function DropdownField({
         onKeyDown={(event) => {
           if (event.key === "ArrowDown" || event.key === "Enter") {
             event.preventDefault();
+            setSearch("");
             setOpen(true);
+            const selectedOption = enabledOptions.find(
+              (option) => option.value === value,
+            );
+            requestAnimationFrame(() =>
+              focusOption(selectedOption ?? enabledOptions[0]),
+            );
           }
         }}
         className="flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3.5 text-left text-sm text-slate-800 shadow-[0_1px_2px_rgb(15_23_42/0.03)] transition hover:border-slate-300 focus-visible:border-blue-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
@@ -242,10 +257,18 @@ export function DropdownField({
             >
               <input
                 type="search"
-                autoFocus
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Cari pilihan..."
+                onKeyDown={(event) => {
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    focusOption(enabledOptions[0]);
+                  } else if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    focusOption(enabledOptions.at(-1));
+                  }
+                }}
+                placeholder="Ketuk untuk mencari..."
                 aria-label="Cari pilihan"
                 className="mb-1.5 h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-50"
               />
@@ -262,6 +285,13 @@ export function DropdownField({
                   <button
                     key={option.value}
                     type="button"
+                    ref={(element) => {
+                      if (element) {
+                        optionRefs.current.set(option.value, element);
+                      } else {
+                        optionRefs.current.delete(option.value);
+                      }
+                    }}
                     role="option"
                     aria-selected={option.value === value}
                     disabled={option.disabled}
@@ -269,7 +299,29 @@ export function DropdownField({
                       onChange(option.value);
                       setOpen(false);
                       setSearch("");
-                      triggerRef.current?.focus();
+                      triggerRef.current?.focus({ preventScroll: true });
+                    }}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === "ArrowDown" ||
+                        event.key === "ArrowUp"
+                      ) {
+                        event.preventDefault();
+                        const currentIndex = enabledOptions.findIndex(
+                          (item) => item.value === option.value,
+                        );
+                        const direction = event.key === "ArrowDown" ? 1 : -1;
+                        const nextIndex =
+                          (currentIndex + direction + enabledOptions.length) %
+                          enabledOptions.length;
+                        focusOption(enabledOptions[nextIndex]);
+                      } else if (event.key === "Home") {
+                        event.preventDefault();
+                        focusOption(enabledOptions[0]);
+                      } else if (event.key === "End") {
+                        event.preventDefault();
+                        focusOption(enabledOptions.at(-1));
+                      }
                     }}
                     className={`flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 ${
                       option.value === value

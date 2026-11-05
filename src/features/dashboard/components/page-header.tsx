@@ -7,11 +7,21 @@ export function DashboardPageHeader({
   onAddTransaction: () => void;
   greetingName: string;
 }) {
+  const todayLabel = new Intl.DateTimeFormat("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
+
   return (
     <div className="flex flex-col gap-5 pb-2 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <p className="text-sm font-medium text-slate-400">
-          Selasa, 11 Juni 2025
+        <p
+          suppressHydrationWarning
+          className="text-sm font-medium text-slate-400"
+        >
+          {todayLabel}
         </p>
         <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
           Selamat datang, {greetingName} 👋

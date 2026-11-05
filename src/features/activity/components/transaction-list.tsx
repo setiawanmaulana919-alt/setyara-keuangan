@@ -296,6 +296,85 @@ export function TransactionList({
     key: Key,
     value: ActivityFilters[Key],
   ) => setDraftFilters((current) => ({ ...current, [key]: value }));
+  const activeFilterChips: Array<{
+    key: keyof ActivityFilters;
+    label: string;
+  }> = [];
+  const addFilterChip = (key: keyof ActivityFilters, label: string) => {
+    activeFilterChips.push({ key, label });
+  };
+  const formatFilterDate = (value: string) => {
+    const [year, month, day] = value.split("-").map(Number);
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(new Date(year, month - 1, day));
+  };
+
+  if (filters.dateFrom) {
+    addFilterChip("dateFrom", `Dari ${formatFilterDate(filters.dateFrom)}`);
+  }
+  if (filters.dateTo) {
+    addFilterChip("dateTo", `Sampai ${formatFilterDate(filters.dateTo)}`);
+  }
+  if (filters.timeFrom) addFilterChip("timeFrom", `Dari ${filters.timeFrom}`);
+  if (filters.timeTo) addFilterChip("timeTo", `Sampai ${filters.timeTo}`);
+  if (filters.accountType !== "all") {
+    const accountTypeLabels: Record<
+      Exclude<AccountTypeFilter, "all">,
+      string
+    > = {
+      cash: "Tunai",
+      bank: "Bank",
+      eWallet: "Dompet digital",
+      savings: "Tabungan",
+      investment: "Investasi",
+      receivable: "Piutang",
+      other: "Lainnya",
+    };
+    addFilterChip("accountType", accountTypeLabels[filters.accountType]);
+  }
+  if (filters.accountId) {
+    addFilterChip("accountId", accountName(filters.accountId));
+  }
+  if (filters.activityKind !== "all") {
+    const activityKindLabels: Record<
+      Exclude<ActivityKindFilter, "all">,
+      string
+    > = {
+      transaction: "Transaksi",
+      transfer: "Transfer",
+      loan: "Utang & piutang",
+    };
+    addFilterChip("activityKind", activityKindLabels[filters.activityKind]);
+  }
+  if (filters.transactionKind !== "all") {
+    addFilterChip(
+      "transactionKind",
+      filters.transactionKind === "income" ? "Pemasukan" : "Pengeluaran",
+    );
+  }
+  if (filters.categoryId) {
+    addFilterChip("categoryId", categoryName(filters.categoryId));
+  }
+  if (filters.loanKind !== "all") {
+    addFilterChip(
+      "loanKind",
+      filters.loanKind === "issued" ? "Pencatatan utang/piutang" : "Pembayaran",
+    );
+  }
+  if (filters.loanDirection !== "all") {
+    addFilterChip(
+      "loanDirection",
+      filters.loanDirection === "receivable" ? "Piutang" : "Utang",
+    );
+  }
+
+  const removeFilter = <Key extends keyof ActivityFilters>(key: Key) => {
+    setFilters((current) => ({ ...current, [key]: EMPTY_FILTERS[key] }));
+    onPageChange(0);
+  };
 
   return (
     <>
@@ -358,6 +437,34 @@ export function TransactionList({
           </button>
         </div>
       </div>
+      {activeFilterChips.length > 0 && (
+        <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2">
+          {activeFilterChips.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => removeFilter(key)}
+              aria-label={`Hapus filter ${label}`}
+              className="inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 text-xs font-medium text-blue-800 hover:border-blue-200 hover:bg-blue-100"
+            >
+              <span className="truncate">{label}</span>
+              <span aria-hidden="true" className="text-sm leading-none">
+                ×
+              </span>
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              setFilters(EMPTY_FILTERS);
+              onPageChange(0);
+            }}
+            className="min-h-8 px-2 text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
+          >
+            Hapus semua
+          </button>
+        </div>
+      )}
       {loading ? (
         <p className="py-10 text-center text-sm text-slate-500">
           Memuat transaksi...
