@@ -169,7 +169,7 @@ export function DropdownField({
           onChange={() => undefined}
           onInvalid={(event) => {
             event.preventDefault();
-            triggerRef.current?.focus();
+            triggerRef.current?.focus({ preventScroll: true });
             setOpen(true);
           }}
           className="pointer-events-none absolute left-1 top-1 h-px w-px opacity-0"

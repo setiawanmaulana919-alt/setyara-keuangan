@@ -48,6 +48,7 @@ export function TimeField({
   const pickerRef = useRef<HTMLDivElement>(null);
   const hourListRef = useRef<HTMLDivElement>(null);
   const minuteListRef = useRef<HTMLDivElement>(null);
+  const hasCenteredInitialTime = useRef(false);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -77,7 +78,7 @@ export function TimeField({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpen(false);
-        triggerRef.current?.focus();
+        triggerRef.current?.focus({ preventScroll: true });
       }
     };
     updatePosition();
@@ -110,7 +111,12 @@ export function TimeField({
   }, [open, position]);
 
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open) {
+      hasCenteredInitialTime.current = false;
+      return;
+    }
+    if (!position || hasCenteredInitialTime.current) return;
+
     for (const list of [hourListRef.current, minuteListRef.current]) {
       const selected = list?.querySelector<HTMLElement>(
         '[aria-pressed="true"]',
@@ -123,7 +129,8 @@ export function TimeField({
         listRect.top -
         (list.clientHeight - selectedRect.height) / 2;
     }
-  }, [open, position, selectedTime]);
+    hasCenteredInitialTime.current = true;
+  }, [open, position]);
 
   function openPicker() {
     const initialTime = value || getLocalTime();
@@ -264,7 +271,7 @@ export function TimeField({
                   onClick={() => {
                     onChange("");
                     setOpen(false);
-                    triggerRef.current?.focus();
+                    triggerRef.current?.focus({ preventScroll: true });
                   }}
                   className="min-h-9 rounded-lg px-3 text-xs font-semibold text-slate-500 hover:bg-slate-50"
                 >
@@ -274,7 +281,7 @@ export function TimeField({
                   type="button"
                   onClick={() => {
                     setOpen(false);
-                    triggerRef.current?.focus();
+                    triggerRef.current?.focus({ preventScroll: true });
                   }}
                   className="min-h-9 rounded-lg bg-blue-600 px-4 text-xs font-semibold text-white hover:bg-blue-700"
                 >

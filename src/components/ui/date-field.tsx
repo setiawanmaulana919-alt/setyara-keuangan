@@ -105,7 +105,7 @@ export function DateField({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpen(false);
-        inputRef.current?.focus();
+        inputRef.current?.focus({ preventScroll: true });
       }
     };
     updatePosition();
@@ -195,7 +195,7 @@ export function DateField({
           onChange={() => undefined}
           onInvalid={(event) => {
             event.preventDefault();
-            inputRef.current?.focus();
+            inputRef.current?.focus({ preventScroll: true });
             setOpen(true);
           }}
           className="pointer-events-none absolute left-1 top-1 h-px w-px opacity-0"
@@ -213,6 +213,7 @@ export function DateField({
           aria-haspopup="dialog"
           aria-controls={calendarId}
           aria-expanded={open}
+          onPointerDown={(event) => event.preventDefault()}
           onClick={openPicker}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
